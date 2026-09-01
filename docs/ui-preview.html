@@ -1,0 +1,902 @@
+<title>Radar AU Interface</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600&display=swap">
+
+<style>
+  /* ---- Tokens: complete light palette on bare :root ---- */
+  :root {
+    --ground:      #EDF0F5;
+    --surface:     #FFFFFF;
+    --surface-sunk:#E4E9F0;
+    --ink:         #0D131C;
+    --ink-soft:    #56637A;
+    --ink-faint:   #8C97AB;
+    --rule:        #D5DCE7;
+    --rule-strong: #BCC6D4;
+    --amber:       #A8730B;
+    --route:       #1B62BE;
+    --danger:      #B4322F;
+    --good:        #1B7A45;
+
+    --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --font-body: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --font-device: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+    --measure: 66ch;
+    --gap: 1.25rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0A0E14;
+      --surface:     #131A24;
+      --surface-sunk:#0D131B;
+      --ink:         #E7EDF6;
+      --ink-soft:    #9AA7BC;
+      --ink-faint:   #6B7789;
+      --rule:        #232C3A;
+      --rule-strong: #33404F;
+      --amber:       #F0C158;
+      --route:       #6BAEFF;
+      --danger:      #F0736E;
+      --good:        #5FCB8E;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0A0E14;
+    --surface:     #131A24;
+    --surface-sunk:#0D131B;
+    --ink:         #E7EDF6;
+    --ink-soft:    #9AA7BC;
+    --ink-faint:   #6B7789;
+    --rule:        #232C3A;
+    --rule-strong: #33404F;
+    --amber:       #F0C158;
+    --route:       #6BAEFF;
+    --danger:      #F0736E;
+    --good:        #5FCB8E;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 4vw, 2.5rem) 5rem;
+  }
+
+  /* ---- Type ---- */
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+
+  h1 {
+    font-size: clamp(2.1rem, 5.5vw, 3.4rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.04;
+  }
+
+  h2 {
+    font-size: clamp(1.4rem, 3vw, 1.85rem);
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    line-height: 1.15;
+  }
+
+  h3 {
+    font-size: 1.02rem;
+    font-weight: 600;
+    letter-spacing: -0.008em;
+  }
+
+  p { margin: 0; max-width: var(--measure); }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0;
+  }
+
+  .lede { font-size: 1.1rem; color: var(--ink-soft); }
+
+  a { color: var(--route); }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--route);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* ---- Header ---- */
+  header.masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    padding-top: 0.4rem;
+  }
+  .meta-strip b { color: var(--ink-soft); font-weight: 500; }
+
+  section { padding-top: clamp(2.75rem, 6vw, 4rem); }
+
+  .section-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-bottom: 1.9rem;
+  }
+
+  /* ---- Phone mockups ---- */
+  .screens {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+    gap: 2.5rem 2rem;
+  }
+
+  figure.screen { margin: 0; display: flex; flex-direction: column; gap: 0.85rem; }
+
+  figcaption { display: flex; flex-direction: column; gap: 0.25rem; }
+  figcaption .name { font-family: var(--font-display); font-weight: 600; font-size: 0.98rem; }
+  figcaption .note { font-size: 0.83rem; color: var(--ink-soft); line-height: 1.45; }
+
+  .phone {
+    position: relative;
+    width: 100%;
+    max-width: 268px;
+    aspect-ratio: 260 / 540;
+    margin-inline: auto;
+    border-radius: 34px;
+    padding: 5px;
+    background: linear-gradient(160deg, #3A4351, #171C24 45%, #2B333F);
+    box-shadow: 0 18px 44px rgba(6, 10, 18, 0.34), 0 2px 6px rgba(6, 10, 18, 0.24);
+  }
+
+  .phone-screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 29px;
+    overflow: hidden;
+    background: #0B1017;
+    font-family: var(--font-device);
+    color: #fff;
+    isolation: isolate;
+  }
+
+  .phone-screen svg.map { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .chrome {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 13px 11px;
+    gap: 7px;
+    z-index: 2;
+  }
+
+  /* ---- Glass ---- */
+  .glass {
+    position: relative;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background:
+      linear-gradient(180deg,
+        rgba(255, 255, 255, 0.15),
+        rgba(255, 255, 255, 0.045) 55%,
+        rgba(255, 255, 255, 0.085));
+    backdrop-filter: blur(16px) saturate(155%);
+    -webkit-backdrop-filter: blur(16px) saturate(155%);
+    box-shadow:
+      0 8px 22px rgba(0, 0, 0, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .glass.capsule { border-radius: 999px; }
+  .glass.tint-danger  { background-color: rgba(235, 87, 87, 0.2); }
+  .glass.tint-caution { background-color: rgba(242, 201, 76, 0.18); }
+  .glass.tint-route   { background-color: rgba(47, 128, 237, 0.28); }
+  .glass.tint-good    { background-color: rgba(39, 174, 96, 0.26); }
+
+  /*
+    The Android treatment. No backdrop-filter at all: the map is a SurfaceView
+    the compositor draws below the app window, so there is nothing for a blur
+    to sample. The base is more opaque to compensate for the lost blur.
+  */
+  .painted .glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background:
+      linear-gradient(180deg,
+        rgba(255, 255, 255, 0.16),
+        rgba(255, 255, 255, 0.05) 55%,
+        rgba(255, 255, 255, 0.09)),
+      rgba(19, 25, 34, 0.84);
+  }
+  .painted .glass.tint-danger  { background-color: rgba(120, 45, 45, 0.9); }
+  .painted .glass.tint-caution { background-color: rgba(112, 92, 34, 0.9); }
+  .painted .glass.tint-route   { background-color: rgba(28, 62, 110, 0.92); }
+  .painted .glass.tint-good    { background-color: rgba(24, 84, 52, 0.92); }
+
+  /* ---- Device UI pieces ---- */
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 15px;
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .banner {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 13px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .banner .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    flex: none;
+    box-shadow: 0 0 9px currentColor;
+  }
+
+  .maneuver { display: flex; align-items: center; gap: 11px; padding: 11px 13px; }
+  .maneuver .dist {
+    font-size: 19px; font-weight: 700; color: #7CBEFF;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+  }
+  .maneuver .instr { font-size: 12.5px; font-weight: 500; line-height: 1.25; }
+
+  .chip {
+    align-self: flex-start;
+    padding: 5px 11px;
+    font-size: 10.5px;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .spacer { flex: 1; }
+
+  .bottom-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+
+  .speed { display: flex; align-items: flex-end; gap: 7px; }
+  .speed .readout { padding: 7px 15px; text-align: center; }
+  .speed .value {
+    font-size: 27px; font-weight: 700; line-height: 1;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+  }
+  .speed .unit { font-size: 8.5px; color: rgba(255, 255, 255, 0.6); letter-spacing: 0.04em; }
+  .speed .limit {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 14px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .controls { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .ctl { border-radius: 50%; display: grid; place-items: center; }
+  .ctl.sm { width: 34px; height: 34px; }
+  .ctl.md { width: 40px; height: 40px; }
+  .ctl.lg { width: 49px; height: 49px; }
+  .ctl svg { width: 46%; height: 46%; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ctl.lg svg { stroke-width: 2.2; }
+
+  .eta { display: flex; align-items: center; justify-content: space-between; padding: 9px 9px 9px 15px; }
+  .eta .time { font-size: 17px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .eta .dist { font-size: 10.5px; color: rgba(255, 255, 255, 0.66); }
+
+  /* Sheets */
+  .scrim {
+    position: absolute; inset: 0;
+    background: rgba(0, 0, 0, 0.52);
+    z-index: 3;
+  }
+  .sheet {
+    position: absolute;
+    left: 8px; right: 8px; bottom: 8px;
+    z-index: 4;
+    border-radius: 22px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+  }
+  .sheet h4 { margin: 0; font-size: 13.5px; font-weight: 600; }
+  .sheet .sub { font-size: 10.5px; color: rgba(255, 255, 255, 0.58); margin: 0; }
+
+  .field { display: flex; align-items: center; gap: 9px; padding: 10px 14px; font-size: 12.5px; }
+  .field .caret { width: 1px; height: 15px; background: #7CBEFF; }
+
+  .result { display: flex; flex-direction: column; gap: 1px; padding: 7px 2px; }
+  .result .r-name { font-size: 12px; font-weight: 500; }
+  .result .r-addr { font-size: 10px; color: rgba(255, 255, 255, 0.5); }
+  .result + .result { border-top: 1px solid rgba(255, 255, 255, 0.09); }
+
+  .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .report-cell {
+    height: 60px; border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px; font-size: 9px; text-align: center; padding: 4px;
+    line-height: 1.15;
+  }
+  .report-cell svg { width: 17px; height: 17px; fill: none; stroke: #fff; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+  .sheet-actions { display: flex; gap: 8px; }
+  .action {
+    flex: 1; height: 38px; border-radius: 999px;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 600;
+  }
+
+  .route-summary { display: flex; align-items: baseline; gap: 9px; }
+  .route-summary .big { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; }
+  .route-summary .small { font-size: 12px; color: rgba(255, 255, 255, 0.65); }
+
+  /* ---- Comparison ---- */
+  .compare {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+    gap: 2.5rem;
+    align-items: start;
+  }
+  @media (max-width: 820px) { .compare { grid-template-columns: 1fr; } }
+
+  .toggle-row { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .toggle {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid var(--rule-strong);
+    background: var(--surface);
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+  }
+  .toggle:hover { border-color: var(--ink-faint); }
+  .toggle[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--ground);
+    border-color: var(--ink);
+  }
+
+  .compare-note {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    padding: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  .compare-note p { font-size: 0.92rem; color: var(--ink-soft); }
+  .compare-note strong { color: var(--ink); font-weight: 600; }
+
+  /* ---- Spec tables ---- */
+  .spec {
+    display: grid;
+    gap: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .spec-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 210px) 1fr;
+    gap: 0.4rem 1.75rem;
+    padding: 0.95rem 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: baseline;
+  }
+  @media (max-width: 620px) { .spec-row { grid-template-columns: 1fr; } }
+  .spec-row dt {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    letter-spacing: 0.03em;
+    color: var(--ink);
+  }
+  .spec-row dd { margin: 0; color: var(--ink-soft); font-size: 0.93rem; }
+
+  /* ---- Status list ---- */
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  .status-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .status-card .label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+  .status-card .label.ok   { color: var(--good); }
+  .status-card .label.warn { color: var(--amber); }
+  .status-card .body { font-size: 0.9rem; color: var(--ink-soft); }
+  .status-card .title { font-family: var(--font-display); font-weight: 600; font-size: 1rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Interface preview — iPhone &amp; Android</p>
+    <h1>Radar AU</h1>
+    <p class="lede">
+      Speed cameras and road hazards, called out before you reach them.
+      Six screens, both platforms, rendered here with the same glass the apps use.
+    </p>
+    <div class="meta-strip">
+      <span><b>Map</b> MapLibre + self-hosted tiles</span>
+      <span><b>Backend</b> Cloudflare Workers</span>
+      <span><b>Tested</b> 103 passing</span>
+      <span><b>App shells</b> not yet compiled</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">01 — The screens</p>
+      <h2>Everything happens on one screen</h2>
+      <p>
+        There is no tab bar and no home screen. The map is always underneath, the
+        chrome floats over it as glass, and every sheet is one tap from driving.
+        Controls are sized for a thumb on a bracket-mounted phone, not a fingertip
+        on a desk.
+      </p>
+    </div>
+
+    <div class="screens" id="screens">
+
+      <!-- 1. Idle -->
+      <figure class="screen">
+        <div class="phone"><div class="phone-screen" data-map>
+          <div class="chrome">
+            <div class="glass capsule pill">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+              Where to?
+            </div>
+            <div class="spacer"></div>
+            <div class="bottom-row">
+              <div class="speed">
+                <div class="glass readout"><div class="value">62</div><div class="unit">km/h</div></div>
+              </div>
+              <div class="controls">
+                <div class="glass ctl sm"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></div>
+                <div class="glass ctl md"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></div>
+                <div class="glass ctl lg tint-route"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="name">Driving, nothing ahead</span>
+          <span class="note">The quiet state, and the one you see most. Speed, a way to search, and a report button under your thumb.</span>
+        </figcaption>
+      </figure>
+
+      <!-- 2. Warning -->
+      <figure class="screen">
+        <div class="phone"><div class="phone-screen" data-map>
+          <div class="chrome">
+            <div class="glass capsule pill">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+              Where to?
+            </div>
+            <div class="glass banner tint-danger">
+              <span class="dot" style="background:#FF6B6B;color:#FF6B6B"></span>
+              Speed camera, 400 metres
+            </div>
+            <div class="spacer"></div>
+            <div class="bottom-row">
+              <div class="speed">
+                <div class="glass readout"><div class="value">104</div><div class="unit">km/h</div></div>
+                <div class="glass limit tint-danger">100</div>
+              </div>
+              <div class="controls">
+                <div class="glass ctl sm"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></div>
+                <div class="glass ctl md"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></div>
+                <div class="glass ctl lg tint-route"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="name">Camera ahead</span>
+          <span class="note">Spoken at the same moment. The limit badge is information, never a scolding — the app does not tell you off for the 104.</span>
+        </figcaption>
+      </figure>
+
+      <!-- 3. Navigating -->
+      <figure class="screen">
+        <div class="phone"><div class="phone-screen" data-map data-route>
+          <div class="chrome">
+            <div class="glass maneuver">
+              <span class="dist">400 m</span>
+              <span class="instr">Turn left onto<br>Parramatta Road</span>
+            </div>
+            <div class="glass capsule chip">Offline — cameras only</div>
+            <div class="spacer"></div>
+            <div class="bottom-row">
+              <div class="speed">
+                <div class="glass readout"><div class="value">58</div><div class="unit">km/h</div></div>
+              </div>
+              <div class="controls">
+                <div class="glass ctl md"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></div>
+                <div class="glass ctl lg tint-route"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+              </div>
+            </div>
+            <div class="glass eta">
+              <div>
+                <div class="time">24 min</div>
+                <div class="dist">18.4 km</div>
+              </div>
+              <div class="glass ctl md tint-danger"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="name">Navigating</span>
+          <span class="note">Turn instructions replace the search pill and morph out of it. Warnings still interrupt — a camera outranks a turn.</span>
+        </figcaption>
+      </figure>
+
+      <!-- 4. Search -->
+      <figure class="screen">
+        <div class="phone"><div class="phone-screen" data-map>
+          <div class="chrome" style="opacity:.5"></div>
+          <div class="scrim"></div>
+          <div class="glass sheet">
+            <div class="glass capsule field">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+              <span>Parramatta</span><span class="caret"></span>
+            </div>
+            <div>
+              <div class="result"><span class="r-name">Parramatta Station</span><span class="r-addr">Argyle St, Parramatta NSW 2150</span></div>
+              <div class="result"><span class="r-name">Parramatta Park</span><span class="r-addr">Pitt St, Parramatta NSW 2150</span></div>
+              <div class="result"><span class="r-name">Westfield Parramatta</span><span class="r-addr">159 Church St, Parramatta NSW</span></div>
+              <div class="result"><span class="r-name">Parramatta Road</span><span class="r-addr">Ashfield NSW 2131</span></div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="name">Search</span>
+          <span class="note">Debounced three characters in, so a destination costs one geocoding call rather than one per keystroke.</span>
+        </figcaption>
+      </figure>
+
+      <!-- 5. Report -->
+      <figure class="screen">
+        <div class="phone"><div class="phone-screen" data-map>
+          <div class="chrome" style="opacity:.5"></div>
+          <div class="scrim"></div>
+          <div class="glass sheet">
+            <h4>What did you just pass?</h4>
+            <div class="report-grid">
+              <div class="glass report-cell"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6z"/></svg>Police</div>
+              <div class="glass report-cell"><svg viewBox="0 0 24 24"><path d="M3 8h4l2-2h6l2 2h4v11H3z"/><circle cx="12" cy="13" r="3.2"/></svg>Mobile camera</div>
+              <div class="glass report-cell"><svg viewBox="0 0 24 24"><path d="M4 16v-4l2-5h12l2 5v4"/><path d="M3 16h18v3H3z"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/></svg>Crash</div>
+              <div class="glass report-cell"><svg viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.2"/></svg>Hazard</div>
+              <div class="glass report-cell"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg>Object on road</div>
+              <div class="glass report-cell"><svg viewBox="0 0 24 24"><path d="M3 15v-3l2-4h11l3 4v3"/><path d="M2 15h19v3H2z"/><circle cx="7" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/></svg>Stopped vehicle</div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="name">Report</span>
+          <span class="note">Six large targets and no text entry. Anything needing to be read does not belong on a screen used at 100 km/h.</span>
+        </figcaption>
+      </figure>
+
+      <!-- 6. Threat detail -->
+      <figure class="screen">
+        <div class="phone"><div class="phone-screen" data-map>
+          <div class="chrome" style="opacity:.5"></div>
+          <div class="scrim"></div>
+          <div class="glass sheet">
+            <div>
+              <h4>Police reported</h4>
+              <p class="sub">Reported by a driver &middot; 6 minutes ago</p>
+            </div>
+            <p class="sub" style="color:rgba(255,255,255,.75)">Is it still there?</p>
+            <div class="sheet-actions">
+              <div class="glass action tint-good">Still there</div>
+              <div class="glass action tint-danger">Gone</div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="name">Confirm or deny</span>
+          <span class="note">Only ever offered on driver reports. A government feed is not something you vote on, so it shows provenance and nothing else.</span>
+        </figcaption>
+      </figure>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">02 — Glass, twice</p>
+      <h2>The same look, built two different ways</h2>
+      <p>
+        On iOS this is Liquid Glass proper: <code>glassEffect</code> inside a
+        <code>GlassEffectContainer</code>, sampling and refracting the map behind it.
+        Android gets the look painted instead. Toggle between them — the panels below
+        are the real techniques, not illustrations of them.
+      </p>
+    </div>
+
+    <div class="compare">
+      <div>
+        <div class="toggle-row" role="group" aria-label="Rendering technique">
+          <button class="toggle" type="button" data-mode="ios" aria-pressed="true">iOS — sampled</button>
+          <button class="toggle" type="button" data-mode="android" aria-pressed="false">Android — painted</button>
+        </div>
+
+        <div class="phone" id="compare-phone" style="max-width:300px;margin-inline:0">
+          <div class="phone-screen" data-map data-route>
+            <div class="chrome">
+              <div class="glass maneuver">
+                <span class="dist">400 m</span>
+                <span class="instr">Turn left onto<br>Parramatta Road</span>
+              </div>
+              <div class="glass banner tint-caution">
+                <span class="dot" style="background:#F2C94C;color:#F2C94C"></span>
+                Mobile camera zone, 600 metres
+              </div>
+              <div class="spacer"></div>
+              <div class="bottom-row">
+                <div class="speed">
+                  <div class="glass readout"><div class="value">78</div><div class="unit">km/h</div></div>
+                  <div class="glass limit tint-danger">80</div>
+                </div>
+                <div class="controls">
+                  <div class="glass ctl md"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></div>
+                  <div class="glass ctl lg tint-route"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+                </div>
+              </div>
+              <div class="glass eta">
+                <div><div class="time">24 min</div><div class="dist">18.4 km</div></div>
+                <div class="glass ctl md tint-danger"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-note">
+        <h3>Why Android does not blur</h3>
+        <p>
+          MapLibre draws the map into a <strong>SurfaceView</strong>, which the system
+          composites on its own layer underneath the app window. The Compose hierarchy
+          never holds those pixels.
+        </p>
+        <p>
+          So the backdrop-blur libraries — Haze, Cloudy, Imla — which work by capturing
+          the Compose root into a texture, capture <strong>a hole where the map is</strong>.
+          They do not run slowly over a map. They cannot see it.
+        </p>
+        <p>
+          The one way to make it blurrable is running MapLibre in texture mode, which
+          costs a full-screen copy every frame on the one surface that never stops
+          redrawing. Paying that so a panel edge can be frosted is a bad trade in an app
+          whose job is to keep working at 100 km/h.
+        </p>
+        <p>
+          Painted glass — a translucent base, a vertical gradient, a rim that is bright
+          where light enters and catches again on the far edge — costs a handful of draw
+          calls, no readback and no extra render pass. Over a dark map, at arm's length,
+          in a car: <strong>you will not be able to tell.</strong>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">03 — Behaviour</p>
+      <h2>What the interface does when you are not looking at it</h2>
+      <p>
+        Most of the design is in what it refuses to do. An app that talks constantly is
+        one you learn to ignore, and that is worse than silence, because you stop hearing
+        the warning that mattered.
+      </p>
+    </div>
+
+    <dl class="spec">
+      <div class="spec-row">
+        <dt>Warning cone</dt>
+        <dd>Narrows with speed — 70&deg; at a standstill, 25&deg; at 100 km/h. At speed, anything 40&deg; off your nose is a different road.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Warning distance</dt>
+        <dd>A lead <em>time</em>, not a distance: 25 s for a camera, 35 s for a closure, converted to metres at your current speed. 500 m is ten seconds of highway and a full minute in traffic.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Other carriageway</dt>
+        <dd>A camera that names the direction it faces stays silent unless your heading is within 60&deg; of it.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Half-believed reports</dt>
+        <dd>Below 0.5 confidence, a report chimes instead of speaking. Below 0.3 it is not shown at all. One stranger's single tap does not get a voice.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Repeats</dt>
+        <dd>Ten-minute cooldown per hazard, six seconds between any two announcements, and anything you have passed is retired for good rather than merely cooled down.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Parked</dt>
+        <dd>Stationary for over a minute and it goes completely silent. Parked next to a camera should not chirp at you.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Turn instructions</dt>
+        <dd>Spoken twice at most — once around 200–600 m out, once inside 60 m. Never queued: a backlog of instructions is worse than none, because the one being read is no longer the one you are approaching.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Losing signal</dt>
+        <dd>Cameras live on the phone, so it degrades to cameras-only rather than to nothing, and says so on screen.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Screen off</dt>
+        <dd>Warnings keep coming. Android runs a foreground service with a visible notification; iOS uses the location background mode.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">04 — Where this actually stands</p>
+      <h2>What is proven and what is not</h2>
+    </div>
+
+    <div class="status-grid">
+      <div class="status-card">
+        <span class="label ok">Tested — 61 passing</span>
+        <span class="title">Backend</span>
+        <span class="body">Feed merging, camera ingest, caching, the Waze circuit breaker, and the cron pruning that had a table-wiping bug in it.</span>
+      </div>
+      <div class="status-card">
+        <span class="label ok">Tested — 42 passing</span>
+        <span class="title">Alert &amp; route engine</span>
+        <span class="body">Every rule above, plus polyline decoding and route tracking, pinned to shared fixtures whose expected values were computed independently.</span>
+      </div>
+      <div class="status-card">
+        <span class="label warn">Written, never compiled</span>
+        <span class="title">The two app shells</span>
+        <span class="body">No Xcode and no Android SDK in the environment these were written in. Expect small fixes on the first build — a moved API, a missing import.</span>
+      </div>
+      <div class="status-card">
+        <span class="label warn">Needs your keys</span>
+        <span class="title">Live data</span>
+        <span class="body">NSW and QLD are free and self-service, Victoria is an email request, Mapbox needs a token. Nothing shows until the Worker has them.</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!--
+  One map, cloned into every phone. Hand-writing it six times would be six
+  chances for the previews to drift apart.
+-->
+<template id="map-template">
+  <svg class="map" viewBox="0 0 260 540" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="260" height="540" fill="#0B1017"/>
+    <path d="M-10 -10 H105 V96 Q60 120 -10 108 Z" fill="#101F19"/>
+    <path d="M175 540 H270 V392 Q210 410 175 470 Z" fill="#0B1E2D"/>
+
+    <g stroke-linecap="round" fill="none">
+      <g stroke="#161D28" stroke-width="19">
+        <path d="M128 -20 C124 130 140 300 132 560"/>
+        <path d="M-20 172 C70 166 180 186 280 176"/>
+      </g>
+      <g stroke="#2A374A" stroke-width="13">
+        <path d="M128 -20 C124 130 140 300 132 560"/>
+        <path d="M-20 172 C70 166 180 186 280 176"/>
+      </g>
+      <g stroke="#141B25" stroke-width="11">
+        <path d="M-20 62 C60 58 150 74 280 66"/>
+        <path d="M-20 322 C80 316 170 336 280 326"/>
+        <path d="M-20 452 C70 446 180 462 280 454"/>
+        <path d="M44 -20 C40 120 52 300 44 560"/>
+        <path d="M212 -20 C208 140 220 320 212 560"/>
+        <path d="M-10 250 L120 118"/>
+        <path d="M138 218 L268 100"/>
+      </g>
+      <g stroke="#1F2938" stroke-width="6.5">
+        <path d="M-20 62 C60 58 150 74 280 66"/>
+        <path d="M-20 322 C80 316 170 336 280 326"/>
+        <path d="M-20 452 C70 446 180 462 280 454"/>
+        <path d="M44 -20 C40 120 52 300 44 560"/>
+        <path d="M212 -20 C208 140 220 320 212 560"/>
+        <path d="M-10 250 L120 118"/>
+        <path d="M138 218 L268 100"/>
+      </g>
+    </g>
+
+    <g class="route-layer" opacity="0">
+      <path d="M130 430 C128 360 136 300 133 250 C131 214 126 196 96 178 C70 162 52 140 46 96"
+            stroke="#0B3D63" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M130 430 C128 360 136 300 133 250 C131 214 126 196 96 178 C70 162 52 140 46 96"
+            stroke="#4AA8FF" stroke-width="6.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <g>
+      <circle cx="133" cy="252" r="6.5" fill="#F2C94C" stroke="#fff" stroke-width="1.6"/>
+      <circle cx="49" cy="112" r="6" fill="#F2C94C" stroke="#fff" stroke-width="1.6"/>
+      <circle cx="196" cy="180" r="6.5" fill="#EB5757" stroke="#fff" stroke-width="1.6"/>
+      <circle cx="90" cy="352" r="6" fill="#F2994A" stroke="#fff" stroke-width="1.6"/>
+      <circle cx="218" cy="330" r="6" fill="#2F80ED" stroke="#fff" stroke-width="1.6" opacity=".55"/>
+    </g>
+
+    <g>
+      <circle cx="130" cy="432" r="17" fill="#4AA8FF" opacity=".18"/>
+      <circle cx="130" cy="432" r="8" fill="#2F80ED" stroke="#fff" stroke-width="2.4"/>
+    </g>
+  </svg>
+</template>
+
+<script>
+  (function () {
+    var template = document.getElementById('map-template');
+
+    document.querySelectorAll('[data-map]').forEach(function (screen) {
+      var map = template.content.firstElementChild.cloneNode(true);
+      if (screen.hasAttribute('data-route')) {
+        map.querySelector('.route-layer').setAttribute('opacity', '1');
+      }
+      screen.insertBefore(map, screen.firstChild);
+    });
+
+    var comparePhone = document.getElementById('compare-phone');
+    var toggles = document.querySelectorAll('.toggle');
+
+    toggles.forEach(function (button) {
+      button.addEventListener('click', function () {
+        var android = button.dataset.mode === 'android';
+        comparePhone.classList.toggle('painted', android);
+        toggles.forEach(function (other) {
+          other.setAttribute('aria-pressed', String(other === button));
+        });
+      });
+    });
+  })();
+</script>

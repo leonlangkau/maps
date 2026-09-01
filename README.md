@@ -9,16 +9,20 @@ flooding, roadworks — and otherwise stays quiet.
 | Piece | State |
 |---|---|
 | `worker/` — Cloudflare Worker backend | Complete, 61 tests passing |
-| `android/core/` — alert engine and API client (pure Kotlin) | Complete, 29 tests passing |
-| `shared/` — the cross-platform alert engine fixtures | 22 cases |
-| `ios/RadarKit/` — the same engine and client in Swift | Written, not yet compiled |
+| `android/core/` — alert, route and API engines (pure Kotlin) | Complete, 42 tests passing |
+| `shared/` — cross-platform engine fixtures | 30 cases |
+| `ios/RadarKit/` — the same engines and client in Swift | Written, not yet compiled |
 | `ios/App/` — SwiftUI app | Written, needs a Mac and Xcode |
 | `android/app/` — Compose app | Written, needs the Android SDK |
 
-The backend and the alert engine are the parts that are hard to get right, and
-both are tested. The two app shells are written but have never been compiled —
-there is no Xcode or Android SDK in the environment they were written in, so
-expect to fix small things on the first build.
+The backend and the engines are the parts that are hard to get right, and both
+are tested. The two app shells are written but have never been compiled — there
+is no Xcode or Android SDK in the environment they were written in, so expect to
+fix small things on the first build.
+
+**[See the interface preview](ui-preview.html)** for the six screens, the glass
+treatment on both platforms, and why Android paints its glass rather than
+blurring it.
 
 ## How it fits together
 
@@ -48,6 +52,8 @@ implementation is already written for the day that arrangement stops suiting.
    risk attached. Read before enabling it.
 6. **[docs/building-the-apps.md](docs/building-the-apps.md)** — getting it onto a
    phone.
+7. **[docs/ui-preview.html](docs/ui-preview.html)** — the interface, screen by
+   screen. Open it in a browser.
 
 ## Is this legal?
 

@@ -4,7 +4,7 @@ Neither app has ever been compiled. They were written in a Linux container with
 no Xcode and no Android SDK, so the first build of each will almost certainly
 turn up small things — a missing import, an API that moved between library
 versions. The parts that were testable have been tested: the Worker (61 tests)
-and the Kotlin alert engine and API client (29 tests).
+and the Kotlin alert, route and API engines (42 tests).
 
 Both apps need the backend running first. See
 [cloudflare-setup.md](cloudflare-setup.md).
@@ -93,13 +93,15 @@ Waze layer's risk stays acceptable — TestFlight builds are not on the store.
 
 ## What is not built yet
 
-- **Routing UI.** `/v1/route` and `/v1/search` work and are tested from the
-  Worker side, and the API clients on both platforms have the methods. Neither
-  app has a destination search box or a route line on the map yet.
-- **CarPlay and Android Auto.** Native was chosen partly to keep these open, but
-  neither is implemented.
+- **CarPlay.** Not an oversight and not something that can simply be written:
+  a CarPlay *navigation* app needs the `com.apple.developer.carplay-maps`
+  entitlement, which Apple grants only on request. Until they grant it the app
+  will not build against the CarPlay templates at all.
+- **Android Auto.** Feasible — it needs a `CarAppService` and the Car App
+  Library — but it is a large surface that cannot be verified without a device
+  and the Desktop Head Unit, so it is deliberately left out rather than shipped
+  untested.
 - **On-device import of a licensed camera set.** See
   [data-sources.md](data-sources.md).
-- **Confirm and deny on other people's reports.** The API and the one-vote-per
-  -device enforcement exist; there is no button.
-- **App icons.**
+- **Alternative routes.** The Worker asks Mapbox for them and the API returns
+  them; neither app offers a way to pick one.
