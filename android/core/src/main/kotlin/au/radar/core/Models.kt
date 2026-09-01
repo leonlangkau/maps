@@ -53,7 +53,15 @@ data class Announcement(
     val threatId: String,
     val level: AnnouncementLevel,
     val spokenText: String,
+    /**
+     * How far away it is. Measured along the road when we are following a
+     * route, straight-line otherwise.
+     */
     val distanceM: Double,
+    /** Pulse the screen as well as speaking, for warnings worth not missing. */
+    val flash: Boolean = false,
+    /** Why this one was raised: on my road, in front of me, or simply close. */
+    val relation: Relation = Relation.AHEAD,
 )
 
 /** One hazard as the API returns it, before it becomes a [Threat]. */

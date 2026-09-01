@@ -1,7 +1,10 @@
 package au.radar.core
 
+import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import kotlin.math.sin
 
 /**
  * Decides what, if anything, to say to the driver right now.
@@ -12,30 +15,40 @@ import kotlin.math.roundToLong
  * disagree.
  *
  * The engine is pure: same inputs, same output, no clock and no I/O. Everything
- * it remembers arrives as [EngineState] and leaves through [record].
+ * it remembers arrives as [EngineState] and leaves through [record]. It also
+ * takes no view on muting — that is a playback decision for the caller, because
+ * a muted app should still flash the screen.
  */
 object AlertEngine {
 
     /** Beyond this, nothing is worth the trigonometry. */
     const val MAX_CONSIDER_M = 3_000.0
 
-    /** Used when there is no usable heading, so "ahead" has no meaning. */
-    const val STATIONARY_RADIUS_M = 500.0
-
     /** Below this speed the time-based range collapses, so a flat range is used. */
     const val CRAWL_SPEED_KMH = 8.0
     const val CRAWL_RANGE_M = 400.0
 
     const val MIN_TRIGGER_M = 300.0
-    const val MAX_TRIGGER_M = 1_500.0
+    const val MAX_TRIGGER_M = 2_000.0
 
-    /** How wide "ahead" is, before speed narrows it. */
+    /** How wide "in front of me" is, before speed narrows it. */
     const val CONE_BASE_DEG = 70.0
     const val CONE_PER_KMH = 0.45
     const val CONE_MIN_DEG = 22.0
 
+    /**
+     * Past this angle a threat is beside or behind you. The radius still
+     * reaches out to the sides — a police car at the intersection you are
+     * approaching sits near 90 degrees — but not backwards, because something
+     * behind you has already been passed.
+     */
+    const val NEARBY_MAX_ANGLE_DEG = 120.0
+
     /** How far a threat's own direction may differ from ours before it is the other carriageway. */
     const val CARRIAGEWAY_TOLERANCE_DEG = 60.0
+
+    /** How far off the route line a threat may sit and still count as on it. */
+    const val ROUTE_CORRIDOR_M = 45.0
 
     const val REPEAT_COOLDOWN_MS = 10 * 60 * 1000L
     const val GLOBAL_GAP_MS = 6_000L
@@ -43,11 +56,6 @@ object AlertEngine {
 
     const val MIN_CONFIDENCE = 0.3
     const val TRUSTED_CONFIDENCE = 0.5
-
-    private const val LEAD_CAMERA_S = 25.0
-    private const val LEAD_CRITICAL_S = 35.0
-    private const val LEAD_MAJOR_S = 25.0
-    private const val LEAD_MINOR_S = 15.0
 
     /**
      * The single announcement due this tick, or null for silence.
@@ -60,26 +68,36 @@ object AlertEngine {
         car: CarState,
         threats: List<Threat>,
         state: EngineState,
+        settings: AlertSettings = AlertSettings(),
+        route: RouteContext? = null,
     ): Announcement? {
         // Parked for a while: say nothing at all, whatever is nearby.
         if (car.stationaryForMs > PARKED_SILENCE_MS) return null
+
+        // An explicit floor the driver set, for anyone who does not want to be
+        // spoken to while crawling. Off by default.
+        if (settings.minSpeedKmh > 0 && car.speedKmh < settings.minSpeedKmh) return null
 
         // Never stack one announcement on top of another.
         val lastAny = state.lastAnyAnnounceAt
         if (lastAny != null && now - lastAny < GLOBAL_GAP_MS) return null
 
-        val due = threats.mapNotNull { threat -> assess(now, car, threat, state) }
+        val due = threats.mapNotNull { assess(now, car, it, state, settings, route) }
         if (due.isEmpty()) return null
 
-        // Severity first, then whichever we reach soonest.
+        // Severity first, then whichever we reach soonest. On-route distances
+        // are measured along the road and so are never shorter than the
+        // straight line, which biases the tie a little towards things beside
+        // you — the right way to be wrong, since those are the ones you cannot
+        // see coming.
         val chosen = due.sortedWith(
             compareByDescending<Candidate> { it.effectiveSeverity }.thenBy { it.distanceM },
         ).first()
 
-        val level = if (chosen.threat.isCamera || chosen.effectiveSeverity >= 2) {
-            AnnouncementLevel.SPEAK
-        } else {
-            AnnouncementLevel.CHIME
+        val level = when {
+            !chosen.kind.voice -> AnnouncementLevel.CHIME
+            chosen.threat.isCamera || chosen.effectiveSeverity >= 2 -> AnnouncementLevel.SPEAK
+            else -> AnnouncementLevel.CHIME
         }
 
         return Announcement(
@@ -87,6 +105,8 @@ object AlertEngine {
             level = level,
             spokenText = "${label(chosen.threat)}, ${spokenDistance(chosen.distanceM)}",
             distanceM = chosen.distanceM,
+            flash = settings.flashEnabled && chosen.kind.flash,
+            relation = chosen.relation,
         )
     }
 
@@ -94,6 +114,8 @@ object AlertEngine {
         val threat: Threat,
         val distanceM: Double,
         val effectiveSeverity: Int,
+        val relation: Relation,
+        val kind: KindSettings,
     )
 
     private fun assess(
@@ -101,50 +123,137 @@ object AlertEngine {
         car: CarState,
         threat: Threat,
         state: EngineState,
+        settings: AlertSettings,
+        route: RouteContext?,
     ): Candidate? {
         if (threat.id in state.retired) return null
         if (threat.confidence < MIN_CONFIDENCE) return null
 
+        val kind = settings.forKind(threat.kind)
+        if (!kind.enabled) return null
+
         val lastForThreat = state.lastAnnouncedAt[threat.id]
         if (lastForThreat != null && now - lastForThreat < REPEAT_COOLDOWN_MS) return null
 
-        val distance = Geo.distanceM(car.lat, car.lon, threat.lat, threat.lon)
-        if (distance > MAX_CONSIDER_M) return null
+        val straightDistance = Geo.distanceM(car.lat, car.lon, threat.lat, threat.lon)
+        if (straightDistance > MAX_CONSIDER_M) return null
 
+        // A camera that names the direction it faces only counts on that side,
+        // however close it is. The other carriageway is not your problem.
         val heading = car.headingDeg
-        if (heading == null) {
-            // No heading, so no notion of ahead. A plain radius is all that is left.
-            if (distance > STATIONARY_RADIUS_M) return null
-        } else {
-            val course = Geo.bearingDeg(car.lat, car.lon, threat.lat, threat.lon)
-            if (Geo.bearingDelta(heading, course) > coneHalfAngle(car.speedKmh)) return null
-
-            // A threat that names its own direction only counts on that side.
-            val faces = threat.bearingDeg
-            if (faces != null && Geo.bearingDelta(heading, faces) > CARRIAGEWAY_TOLERANCE_DEG) {
-                return null
-            }
-
-            if (distance > triggerRange(car.speedKmh, threat)) return null
+        val faces = threat.bearingDeg
+        if (faces != null && heading != null &&
+            Geo.bearingDelta(heading, faces) > CARRIAGEWAY_TOLERANCE_DEG
+        ) {
+            return null
         }
 
-        return Candidate(threat, distance, effectiveSeverity(threat))
+        val placement = classify(car, threat, straightDistance, settings, route) ?: return null
+
+        val leadSeconds = kind.leadSeconds * when (placement.relation) {
+            Relation.ON_ROUTE, Relation.SAME_ROAD -> settings.sameRoadLeadMultiplier
+            else -> 1.0
+        }
+
+        // Two different questions, so two different ranges.
+        //
+        // Down the road, the range is a lead time in metres, floored by the
+        // radius so a slow crawl still gets a useful warning.
+        //
+        // To the side, only the radius applies. Letting a long lead time reach
+        // sideways would warn about a police car half a kilometre off your
+        // route purely because you happened to be going fast — the direction
+        // you are travelling says nothing about how soon you reach something
+        // beside you.
+        val triggerRange = if (placement.relation == Relation.NEARBY) {
+            kind.radiusM
+        } else {
+            maxOf(kind.radiusM, leadRange(car.speedKmh, leadSeconds))
+        }
+        if (placement.distanceM > triggerRange) return null
+
+        return Candidate(
+            threat = threat,
+            distanceM = placement.distanceM,
+            effectiveSeverity = effectiveSeverity(threat),
+            relation = placement.relation,
+            kind = kind,
+        )
     }
+
+    private data class Placement(val relation: Relation, val distanceM: Double)
+
+    /**
+     * Work out how a threat relates to the road under the car.
+     *
+     * The order matters. The route, when there is one, is the best answer
+     * available: it follows the road around bends, which nothing derived from
+     * an instantaneous heading can do. Failing that, a narrow corridor down the
+     * heading is a good proxy for "my road", and the wider cone catches what is
+     * merely in front. The radius is the backstop for everything geometry
+     * cannot settle.
+     */
+    private fun classify(
+        car: CarState,
+        threat: Threat,
+        straightDistance: Double,
+        settings: AlertSettings,
+        route: RouteContext?,
+    ): Placement? {
+        if (route != null && route.aheadGeometry.size >= 2) {
+            val onLine = RouteTracker.locate(route.aheadGeometry, threat.lat, threat.lon)
+            // The slice starts at the car, so a non-negative along-value is
+            // genuinely in front of us however the road bends between here and
+            // there. Exclude the very end of the slice, where every point off
+            // the end of the route projects onto the final vertex.
+            if (onLine != null && onLine.offM <= ROUTE_CORRIDOR_M && onLine.alongM > 0) {
+                return Placement(Relation.ON_ROUTE, onLine.alongM)
+            }
+        }
+
+        val heading = car.headingDeg
+            // No heading, so no notion of ahead. Everything in range is simply near.
+            ?: return Placement(Relation.NEARBY, straightDistance)
+
+        val course = Geo.bearingDeg(car.lat, car.lon, threat.lat, threat.lon)
+        val relativeAngle = Geo.bearingDelta(heading, course)
+        val radians = Math.toRadians(relativeAngle)
+
+        val alongTrack = straightDistance * cos(radians)
+        val crossTrack = abs(straightDistance * sin(radians))
+
+        if (alongTrack > 0 && crossTrack <= corridorHalfWidth(straightDistance, settings)) {
+            return Placement(Relation.SAME_ROAD, straightDistance)
+        }
+        if (relativeAngle <= coneHalfAngle(car.speedKmh)) {
+            return Placement(Relation.AHEAD, straightDistance)
+        }
+        if (relativeAngle <= NEARBY_MAX_ANGLE_DEG) {
+            return Placement(Relation.NEARBY, straightDistance)
+        }
+        return null
+    }
+
+    /**
+     * How far to either side still counts as the road you are on.
+     *
+     * A fixed width would be wrong at both ends: too generous close up, where
+     * it swallows the parallel street, and too mean far off, where a degree of
+     * heading noise moves the corridor by tens of metres. So it widens with
+     * distance, and stops widening before it can reach the next road over.
+     */
+    fun corridorHalfWidth(distanceM: Double, settings: AlertSettings): Double =
+        (settings.corridorHalfWidthM + distanceM * settings.corridorWidenPerM)
+            .coerceAtMost(settings.corridorMaxHalfWidthM)
 
     /** The cone narrows as speed rises: at 100 km/h, only what is nearly straight ahead. */
     fun coneHalfAngle(speedKmh: Double): Double =
         (CONE_BASE_DEG - speedKmh * CONE_PER_KMH).coerceIn(CONE_MIN_DEG, CONE_BASE_DEG)
 
     /** Warning distance is a lead *time* converted to metres at the current speed. */
-    fun triggerRange(speedKmh: Double, threat: Threat): Double {
+    fun leadRange(speedKmh: Double, leadSeconds: Double): Double {
         if (speedKmh < CRAWL_SPEED_KMH) return CRAWL_RANGE_M
-        val lead = when {
-            threat.isCamera -> LEAD_CAMERA_S
-            threat.severity >= 3 -> LEAD_CRITICAL_S
-            threat.severity == 2 -> LEAD_MAJOR_S
-            else -> LEAD_MINOR_S
-        }
-        return (speedKmh / 3.6 * lead).coerceIn(MIN_TRIGGER_M, MAX_TRIGGER_M)
+        return (speedKmh / 3.6 * leadSeconds).coerceIn(MIN_TRIGGER_M, MAX_TRIGGER_M)
     }
 
     /**

@@ -36,6 +36,10 @@ struct DriveView: View {
             .padding(.vertical, 12)
             .animation(.smooth(duration: 0.28), value: model.lastAnnouncement?.threatId)
             .animation(.smooth(duration: 0.28), value: model.navMode)
+
+            // Above everything, including any sheet: a warning worth flashing
+            // for is worth seeing over whatever else is open.
+            FlashOverlay(flashAt: model.flashAt)
         }
         .preferredColorScheme(.dark)
         .sheet(isPresented: .init(
@@ -68,9 +72,7 @@ struct DriveView: View {
             .presentationBackground(.thinMaterial)
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsSheet(model: model)
-                .presentationDetents([.medium])
-                .presentationBackground(.thinMaterial)
+            SettingsScreen(model: model)
         }
         .onAppear { model.start() }
         .onDisappear { model.stop() }
@@ -138,7 +140,7 @@ struct DriveView: View {
                 systemImage: model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill",
                 label: model.muted ? "Unmute warnings" : "Mute warnings",
                 size: 56
-            ) { model.muted.toggle() }
+            ) { model.toggleMute() }
 
             GlassCircleButton(
                 systemImage: "plus",

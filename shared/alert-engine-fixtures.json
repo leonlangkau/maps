@@ -1,10 +1,10 @@
 {
-  "note": "Shared expectations for the iOS and Android alert engines. See docs/alert-engine.md.",
+  "note": "Shared expectations for the iOS and Android alert engines. Produced by an independent implementation of docs/alert-engine.md.",
   "now": 1760000000000,
   "cases": [
     {
-      "name": "camera ahead at highway speed is announced",
-      "why": "25s lead at 100km/h is a 694m trigger range; the camera is inside it.",
+      "name": "police far up my own road",
+      "why": "Dead ahead is inside the corridor, so the lead is 45s x 1.7 = 76.5s. At 100km/h that caps at the 2000m ceiling, and 1400m is well inside it.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -17,28 +17,41 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "cam1",
-          "kind": "fixed_speed",
-          "lat": -33.8650229,
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8562095,
           "lon": 151.2093,
           "bearingDeg": null,
           "severity": 2,
           "confidence": 1.0,
-          "isCamera": true,
-          "speedLimit": 100
+          "isCamera": false,
+          "speedLimit": null
         }
       ],
       "expect": {
-        "threatId": "cam1",
+        "threatId": "p1",
         "level": "speak",
-        "spokenText": "Speed camera, 400 metres"
+        "spokenText": "Police reported, 1.4 kilometres",
+        "flash": true,
+        "relation": "SAME_ROAD"
       }
     },
     {
-      "name": "camera beyond the trigger range stays quiet",
-      "why": "900m exceeds the 694m range at 100km/h; it will fire on a later tick.",
+      "name": "police the same distance up a parallel road",
+      "why": "120m to the side exceeds the 68m corridor at 1400m, so it is only AHEAD: a plain 45s lead, 1250m at 100km/h, and 1400m is outside it.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -51,28 +64,41 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "cam1",
-          "kind": "fixed_speed",
-          "lat": -33.8607061,
-          "lon": 151.2093,
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8562095,
+          "lon": 151.2105997,
           "bearingDeg": null,
           "severity": 2,
           "confidence": 1.0,
-          "isCamera": true,
+          "isCamera": false,
           "speedLimit": null
         }
       ],
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
       }
     },
     {
-      "name": "camera behind the car is never announced",
-      "why": "Warning about something already passed trains the driver to ignore the voice.",
+      "name": "the parallel road police, once they are closer",
+      "why": "Same geometry at 1100m, now inside the 1250m plain lead.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -85,28 +111,182 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "cam1",
-          "kind": "fixed_speed",
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8589075,
+          "lon": 151.2105997,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "p1",
+        "level": "speak",
+        "spokenText": "Police reported, 1.1 kilometres",
+        "flash": true,
+        "relation": "AHEAD"
+      }
+    },
+    {
+      "name": "police beside me at an intersection",
+      "why": "90 degrees off is neither on my road nor in the cone, but 250m is inside the 500m police radius. This is what the radius is for.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8688,
+          "lon": 151.2120078,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "p1",
+        "level": "speak",
+        "spokenText": "Police reported, 300 metres",
+        "flash": true,
+        "relation": "NEARBY"
+      }
+    },
+    {
+      "name": "police well off to the side",
+      "why": "Also 90 degrees off, but 700m exceeds the 500m radius. A long lead time must not reach sideways.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8687998,
+          "lon": 151.2168817,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": null,
+        "level": null,
+        "spokenText": null,
+        "flash": false,
+        "relation": null
+      }
+    },
+    {
+      "name": "police behind me",
+      "why": "Past 120 degrees nothing is raised at all, radius or not.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "p1",
+          "kind": "police",
           "lat": -33.871498,
           "lon": 151.2093,
           "bearingDeg": null,
           "severity": 2,
           "confidence": 1.0,
-          "isCamera": true,
+          "isCamera": false,
           "speedLimit": null
         }
       ],
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
       }
     },
     {
-      "name": "camera well off to the side is ignored at speed",
-      "why": "At 100km/h the cone is 25 degrees, so a threat 60 degrees off the nose is a different road.",
+      "name": "camera just inside the corridor",
+      "why": "40m off-axis at 500m, where the corridor is 50m wide. Counts as my road.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -119,12 +299,117 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "cam1",
+          "id": "c1",
           "kind": "fixed_speed",
-          "lat": -33.8670013,
-          "lon": 151.2130519,
+          "lat": -33.8643034,
+          "lon": 151.2097332,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": true,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "c1",
+        "level": "speak",
+        "spokenText": "Speed camera, 500 metres",
+        "flash": false,
+        "relation": "SAME_ROAD"
+      }
+    },
+    {
+      "name": "camera just outside the corridor",
+      "why": "60m off-axis at 500m is past the 50m corridor, so it is AHEAD rather than SAME_ROAD. Still announced, on the shorter lead.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "c1",
+          "kind": "fixed_speed",
+          "lat": -33.8643034,
+          "lon": 151.2099499,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": true,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "c1",
+        "level": "speak",
+        "spokenText": "Speed camera, 500 metres",
+        "flash": false,
+        "relation": "AHEAD"
+      }
+    },
+    {
+      "name": "the corridor stops widening",
+      "why": "At 2800m the corridor is capped at 90m, so 95m off-axis is not my road, and 2800m is far outside the 694m plain camera lead.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "c1",
+          "kind": "fixed_speed",
+          "lat": -33.843619,
+          "lon": 151.210329,
           "bearingDeg": null,
           "severity": 2,
           "confidence": 1.0,
@@ -135,46 +420,14 @@
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
       }
     },
     {
-      "name": "the same camera counts when crawling, because the cone widens",
-      "why": "At 20km/h the cone opens to 61 degrees and the 300m floor keeps the range usable.",
-      "car": {
-        "lat": -33.8688,
-        "lon": 151.2093,
-        "speedMps": 5.5556,
-        "headingDeg": 0.0,
-        "stationaryForMs": 0
-      },
-      "state": {
-        "lastAnnouncedAt": {},
-        "lastAnyAnnounceAt": null,
-        "retired": []
-      },
-      "threats": [
-        {
-          "id": "cam1",
-          "kind": "fixed_speed",
-          "lat": -33.8679007,
-          "lon": 151.211176,
-          "bearingDeg": null,
-          "severity": 2,
-          "confidence": 1.0,
-          "isCamera": true,
-          "speedLimit": null
-        }
-      ],
-      "expect": {
-        "threatId": "cam1",
-        "level": "speak",
-        "spokenText": "Speed camera, 200 metres"
-      }
-    },
-    {
-      "name": "a camera facing the other carriageway is skipped",
-      "why": "Camera faces southbound traffic; we are heading north on a divided road.",
+      "name": "police around a bend, with no route set",
+      "why": "1000m along the road but 67 degrees off my nose and 761m away. Outside the cone, outside the radius: heading alone cannot see around a corner.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -187,28 +440,41 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "cam1",
-          "kind": "fixed_speed",
-          "lat": -33.8650229,
-          "lon": 151.2093,
-          "bearingDeg": 180.0,
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8661018,
+          "lon": 151.2168815,
+          "bearingDeg": null,
           "severity": 2,
           "confidence": 1.0,
-          "isCamera": true,
+          "isCamera": false,
           "speedLimit": null
         }
       ],
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
       }
     },
     {
-      "name": "a camera facing our own direction is announced",
-      "why": "10 degrees off our heading is well inside the 60 degree carriageway tolerance.",
+      "name": "police around the same bend, while navigating",
+      "why": "The route slice follows the corner, so the distance that matters is the 1000m along the road, and being on the route earns the long lead.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -221,28 +487,170 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": [
+        {
+          "lat": -33.8688,
+          "lon": 151.2093
+        },
+        {
+          "lat": -33.866102,
+          "lon": 151.2093
+        },
+        {
+          "lat": -33.866102,
+          "lon": 151.2109246
+        },
+        {
+          "lat": -33.866102,
+          "lon": 151.2125492
+        },
+        {
+          "lat": -33.8661019,
+          "lon": 151.2141738
+        },
+        {
+          "lat": -33.8661018,
+          "lon": 151.2157984
+        },
+        {
+          "lat": -33.8661017,
+          "lon": 151.217423
+        },
+        {
+          "lat": -33.8661016,
+          "lon": 151.2190476
+        },
+        {
+          "lat": -33.8661015,
+          "lon": 151.2206723
+        },
+        {
+          "lat": -33.8661013,
+          "lon": 151.2222969
+        }
+      ],
       "threats": [
         {
-          "id": "cam1",
-          "kind": "fixed_speed",
-          "lat": -33.8650229,
-          "lon": 151.2093,
-          "bearingDeg": 10.0,
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8661018,
+          "lon": 151.2168815,
+          "bearingDeg": null,
           "severity": 2,
           "confidence": 1.0,
-          "isCamera": true,
+          "isCamera": false,
           "speedLimit": null
         }
       ],
       "expect": {
-        "threatId": "cam1",
+        "threatId": "p1",
         "level": "speak",
-        "spokenText": "Speed camera, 400 metres"
+        "spokenText": "Police reported, 1 kilometre",
+        "flash": true,
+        "relation": "ON_ROUTE"
       }
     },
     {
-      "name": "a barely-believed report is dropped entirely",
-      "why": "Confidence 0.2 is one stranger's single tap. Below 0.3 it is not shown at all.",
+      "name": "a threat beside the route is not on my road",
+      "why": "200m north of the route's eastern leg is far outside the 45m route corridor, so it falls back to heading, which puts it outside both the cone and the radius.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": [
+        {
+          "lat": -33.8688,
+          "lon": 151.2093
+        },
+        {
+          "lat": -33.866102,
+          "lon": 151.2093
+        },
+        {
+          "lat": -33.866102,
+          "lon": 151.2109246
+        },
+        {
+          "lat": -33.866102,
+          "lon": 151.2125492
+        },
+        {
+          "lat": -33.8661019,
+          "lon": 151.2141738
+        },
+        {
+          "lat": -33.8661018,
+          "lon": 151.2157984
+        },
+        {
+          "lat": -33.8661017,
+          "lon": 151.217423
+        },
+        {
+          "lat": -33.8661016,
+          "lon": 151.2190476
+        },
+        {
+          "lat": -33.8661015,
+          "lon": 151.2206723
+        },
+        {
+          "lat": -33.8661013,
+          "lon": 151.2222969
+        }
+      ],
+      "threats": [
+        {
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8643032,
+          "lon": 151.2157984,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": null,
+        "level": null,
+        "spokenText": null,
+        "flash": false,
+        "relation": null
+      }
+    },
+    {
+      "name": "roadworks chime rather than speak",
+      "why": "Roadworks default to voice off, so even on my road it is a tone.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -255,9 +663,420 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "rep1",
+          "id": "r1",
+          "kind": "roadwork",
+          "lat": -33.8652027,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 0,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "r1",
+        "level": "chime",
+        "spokenText": "Roadworks, 400 metres",
+        "flash": false,
+        "relation": "SAME_ROAD"
+      }
+    },
+    {
+      "name": "police flash the screen",
+      "why": "Police default to flashing, which is the setting the whole feature exists for.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8634041,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "p1",
+        "level": "speak",
+        "spokenText": "Police reported, 600 metres",
+        "flash": true,
+        "relation": "SAME_ROAD"
+      }
+    },
+    {
+      "name": "a fixed camera does not flash",
+      "why": "Flashing is reserved for the kinds worth looking up for.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "c1",
+          "kind": "fixed_speed",
+          "lat": -33.8643034,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": true,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "c1",
+        "level": "speak",
+        "spokenText": "Speed camera, 500 metres",
+        "flash": false,
+        "relation": "SAME_ROAD"
+      }
+    },
+    {
+      "name": "flashing turned off everywhere",
+      "why": "The master switch beats the per-kind flag.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": false,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8634041,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "p1",
+        "level": "speak",
+        "spokenText": "Police reported, 600 metres",
+        "flash": false,
+        "relation": "SAME_ROAD"
+      }
+    },
+    {
+      "name": "a kind switched off entirely",
+      "why": "Someone who does not want police alerts gets silence, not a quieter one.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {
+        "police": {
+          "enabled": false,
+          "voice": true,
+          "flash": true,
+          "leadSeconds": 45.0,
+          "radiusM": 500.0
+        }
+      },
+      "route": null,
+      "threats": [
+        {
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8634041,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": null,
+        "level": null,
+        "spokenText": null,
+        "flash": false,
+        "relation": null
+      }
+    },
+    {
+      "name": "a shortened lead for one kind",
+      "why": "Cutting the police lead to 10s gives 278m at 100km/h, floored by the 500m radius, so 600m is now outside it.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {
+        "police": {
+          "enabled": true,
+          "voice": true,
+          "flash": true,
+          "leadSeconds": 10.0,
+          "radiusM": 500.0
+        }
+      },
+      "route": null,
+      "threats": [
+        {
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8634041,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": null,
+        "level": null,
+        "spokenText": null,
+        "flash": false,
+        "relation": null
+      }
+    },
+    {
+      "name": "a widened radius for one kind",
+      "why": "Raising the police radius to 900m brings the one beside me into range.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {
+        "police": {
+          "enabled": true,
+          "voice": true,
+          "flash": true,
+          "leadSeconds": 45.0,
+          "radiusM": 900.0
+        }
+      },
+      "route": null,
+      "threats": [
+        {
+          "id": "p1",
+          "kind": "police",
+          "lat": -33.8687998,
+          "lon": 151.2168817,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "p1",
+        "level": "speak",
+        "spokenText": "Police reported, 700 metres",
+        "flash": true,
+        "relation": "NEARBY"
+      }
+    },
+    {
+      "name": "a minimum speed the driver set",
+      "why": "Below the floor the app says nothing, however close the camera is.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 2.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 20.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "c1",
+          "kind": "fixed_speed",
+          "lat": -33.8670014,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": true,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": null,
+        "level": null,
+        "spokenText": null,
+        "flash": false,
+        "relation": null
+      }
+    },
+    {
+      "name": "a barely-believed report is dropped",
+      "why": "Confidence 0.2 is one stranger's single tap.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 16.6667,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "x1",
           "kind": "police",
           "lat": -33.8670014,
           "lon": 151.2093,
@@ -271,11 +1090,13 @@
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
       }
     },
     {
-      "name": "a partly-believed report chimes instead of speaking",
+      "name": "a partly-believed report chimes",
       "why": "Confidence 0.4 caps severity at 1, which is a tone rather than a voice.",
       "car": {
         "lat": -33.8688,
@@ -289,9 +1110,20 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "rep1",
+          "id": "x1",
           "kind": "police",
           "lat": -33.8670014,
           "lon": 151.2093,
@@ -303,14 +1135,16 @@
         }
       ],
       "expect": {
-        "threatId": "rep1",
+        "threatId": "x1",
         "level": "chime",
-        "spokenText": "Police reported, 200 metres"
+        "spokenText": "Police reported, 200 metres",
+        "flash": true,
+        "relation": "SAME_ROAD"
       }
     },
     {
-      "name": "a critical hazard gets a longer lead than a major one",
-      "why": "35s at 100km/h is 972m, so a closure at 800m fires now.",
+      "name": "a camera facing the other carriageway",
+      "why": "It faces south while we head north, so it is not our problem however close.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -323,66 +1157,45 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "clo1",
-          "kind": "closure",
-          "lat": -33.8616054,
+          "id": "c1",
+          "kind": "fixed_speed",
+          "lat": -33.8650229,
           "lon": 151.2093,
-          "bearingDeg": null,
-          "severity": 3,
-          "confidence": 1.0,
-          "isCamera": false,
-          "speedLimit": null
-        }
-      ],
-      "expect": {
-        "threatId": "clo1",
-        "level": "speak",
-        "spokenText": "Road closed, 800 metres"
-      }
-    },
-    {
-      "name": "a major hazard at the same distance is not due yet",
-      "why": "25s at 100km/h is 694m, and the crash is at 800m.",
-      "car": {
-        "lat": -33.8688,
-        "lon": 151.2093,
-        "speedMps": 27.7778,
-        "headingDeg": 0.0,
-        "stationaryForMs": 0
-      },
-      "state": {
-        "lastAnnouncedAt": {},
-        "lastAnyAnnounceAt": null,
-        "retired": []
-      },
-      "threats": [
-        {
-          "id": "crash1",
-          "kind": "crash",
-          "lat": -33.8616054,
-          "lon": 151.2093,
-          "bearingDeg": null,
+          "bearingDeg": 180.0,
           "severity": 2,
           "confidence": 1.0,
-          "isCamera": false,
+          "isCamera": true,
           "speedLimit": null
         }
       ],
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
       }
     },
     {
-      "name": "distances over a kilometre are spoken in kilometres",
-      "why": "35s at 130km/h reaches 1264m, so an 1100m closure is announced.",
+      "name": "a camera facing our own direction",
+      "why": "10 degrees off our heading is well inside the 60 degree tolerance.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
-        "speedMps": 36.1111,
+        "speedMps": 27.7778,
         "headingDeg": 0.0,
         "stationaryForMs": 0
       },
@@ -391,28 +1204,41 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "clo1",
-          "kind": "closure",
-          "lat": -33.8589075,
+          "id": "c1",
+          "kind": "fixed_speed",
+          "lat": -33.8650229,
           "lon": 151.2093,
-          "bearingDeg": null,
-          "severity": 3,
+          "bearingDeg": 10.0,
+          "severity": 2,
           "confidence": 1.0,
-          "isCamera": false,
+          "isCamera": true,
           "speedLimit": null
         }
       ],
       "expect": {
-        "threatId": "clo1",
+        "threatId": "c1",
         "level": "speak",
-        "spokenText": "Road closed, 1.1 kilometres"
+        "spokenText": "Speed camera, 400 metres",
+        "flash": false,
+        "relation": "SAME_ROAD"
       }
     },
     {
-      "name": "the same threat is not repeated inside the cooldown",
-      "why": "Announced one minute ago; the per-threat cooldown is ten.",
+      "name": "the same threat inside its cooldown",
+      "why": "Announced a minute ago; the per-threat cooldown is ten.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -422,14 +1248,25 @@
       },
       "state": {
         "lastAnnouncedAt": {
-          "cam1": 1759999940000
+          "c1": 1759999940000
         },
         "lastAnyAnnounceAt": 1759999940000,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "cam1",
+          "id": "c1",
           "kind": "fixed_speed",
           "lat": -33.8650229,
           "lon": 151.2093,
@@ -443,12 +1280,14 @@
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
       }
     },
     {
-      "name": "the same threat may repeat once the cooldown has expired",
-      "why": "Eleven minutes have passed, so a long jam beside a hazard warns again.",
+      "name": "the same threat once the cooldown expires",
+      "why": "Eleven minutes on, a long jam beside a hazard may warn again.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -458,14 +1297,25 @@
       },
       "state": {
         "lastAnnouncedAt": {
-          "cam1": 1759999340000
+          "c1": 1759999340000
         },
         "lastAnyAnnounceAt": 1759999340000,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "cam1",
+          "id": "c1",
           "kind": "fixed_speed",
           "lat": -33.8650229,
           "lon": 151.2093,
@@ -477,13 +1327,15 @@
         }
       ],
       "expect": {
-        "threatId": "cam1",
+        "threatId": "c1",
         "level": "speak",
-        "spokenText": "Speed camera, 400 metres"
+        "spokenText": "Speed camera, 400 metres",
+        "flash": false,
+        "relation": "SAME_ROAD"
       }
     },
     {
-      "name": "a second announcement never lands on top of the first",
+      "name": "two announcements never land on top of each other",
       "why": "Two seconds since the last one; the global gap is six.",
       "car": {
         "lat": -33.8688,
@@ -497,9 +1349,20 @@
         "lastAnyAnnounceAt": 1759999998000,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "cam1",
+          "id": "c1",
           "kind": "fixed_speed",
           "lat": -33.8650229,
           "lon": 151.2093,
@@ -513,12 +1376,14 @@
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
       }
     },
     {
-      "name": "severity wins when two threats are both due",
-      "why": "A minor hazard is closer, but the closure is the one worth interrupting for.",
+      "name": "a retired threat never comes back",
+      "why": "Once passed and receding, a threat is done rather than merely cooled down.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
@@ -529,138 +1394,27 @@
       "state": {
         "lastAnnouncedAt": {},
         "lastAnyAnnounceAt": null,
-        "retired": []
+        "retired": [
+          "c1"
+        ]
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "haz1",
-          "kind": "hazard",
-          "lat": -33.8670014,
-          "lon": 151.2093,
-          "bearingDeg": null,
-          "severity": 1,
-          "confidence": 1.0,
-          "isCamera": false,
-          "speedLimit": null
-        },
-        {
-          "id": "clo1",
-          "kind": "closure",
-          "lat": -33.8625048,
-          "lon": 151.2093,
-          "bearingDeg": null,
-          "severity": 3,
-          "confidence": 1.0,
-          "isCamera": false,
-          "speedLimit": null
-        }
-      ],
-      "expect": {
-        "threatId": "clo1",
-        "level": "speak",
-        "spokenText": "Road closed, 700 metres"
-      }
-    },
-    {
-      "name": "distance breaks a severity tie",
-      "why": "Two equally serious crashes; the near one is the one you will reach first.",
-      "car": {
-        "lat": -33.8688,
-        "lon": 151.2093,
-        "speedMps": 27.7778,
-        "headingDeg": 0.0,
-        "stationaryForMs": 0
-      },
-      "state": {
-        "lastAnnouncedAt": {},
-        "lastAnyAnnounceAt": null,
-        "retired": []
-      },
-      "threats": [
-        {
-          "id": "crash_far",
-          "kind": "crash",
-          "lat": -33.8643034,
-          "lon": 151.2093,
-          "bearingDeg": null,
-          "severity": 2,
-          "confidence": 1.0,
-          "isCamera": false,
-          "speedLimit": null
-        },
-        {
-          "id": "crash_near",
-          "kind": "crash",
-          "lat": -33.866102,
-          "lon": 151.2093,
-          "bearingDeg": null,
-          "severity": 2,
-          "confidence": 1.0,
-          "isCamera": false,
-          "speedLimit": null
-        }
-      ],
-      "expect": {
-        "threatId": "crash_near",
-        "level": "speak",
-        "spokenText": "Crash ahead, 300 metres"
-      }
-    },
-    {
-      "name": "with no heading, a plain radius is used",
-      "why": "Stopped at lights with no usable heading; direction is meaningless.",
-      "car": {
-        "lat": -33.8688,
-        "lon": 151.2093,
-        "speedMps": 0.0,
-        "headingDeg": null,
-        "stationaryForMs": 0
-      },
-      "state": {
-        "lastAnnouncedAt": {},
-        "lastAnyAnnounceAt": null,
-        "retired": []
-      },
-      "threats": [
-        {
-          "id": "cam1",
+          "id": "c1",
           "kind": "fixed_speed",
-          "lat": -33.8707077,
-          "lon": 151.2115977,
-          "bearingDeg": null,
-          "severity": 2,
-          "confidence": 1.0,
-          "isCamera": true,
-          "speedLimit": null
-        }
-      ],
-      "expect": {
-        "threatId": "cam1",
-        "level": "speak",
-        "spokenText": "Speed camera, 300 metres"
-      }
-    },
-    {
-      "name": "with no heading, anything past the radius is ignored",
-      "why": "800m is outside the 500m stationary radius.",
-      "car": {
-        "lat": -33.8688,
-        "lon": 151.2093,
-        "speedMps": 0.0,
-        "headingDeg": null,
-        "stationaryForMs": 0
-      },
-      "state": {
-        "lastAnnouncedAt": {},
-        "lastAnyAnnounceAt": null,
-        "retired": []
-      },
-      "threats": [
-        {
-          "id": "cam1",
-          "kind": "fixed_speed",
-          "lat": -33.8738872,
-          "lon": 151.2154273,
+          "lat": -33.8650229,
+          "lon": 151.2093,
           "bearingDeg": null,
           "severity": 2,
           "confidence": 1.0,
@@ -671,11 +1425,13 @@
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
       }
     },
     {
-      "name": "a car parked for a minute goes silent",
+      "name": "parked for a minute",
       "why": "Parked next to a camera should not chirp at you.",
       "car": {
         "lat": -33.8688,
@@ -689,9 +1445,20 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "cam1",
+          "id": "c1",
           "kind": "fixed_speed",
           "lat": -33.8670014,
           "lon": 151.2093,
@@ -705,32 +1472,90 @@
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
       }
     },
     {
-      "name": "a retired threat never comes back",
-      "why": "Once passed and receding, a threat is done \u2014 not merely cooled down.",
+      "name": "stopped, with no usable heading",
+      "why": "Direction is meaningless, so everything is simply NEARBY and the range is the crawl range floored by the radius.",
       "car": {
         "lat": -33.8688,
         "lon": 151.2093,
-        "speedMps": 27.7778,
-        "headingDeg": 0.0,
+        "speedMps": 0.0,
+        "headingDeg": null,
         "stationaryForMs": 0
       },
       "state": {
         "lastAnnouncedAt": {},
         "lastAnyAnnounceAt": null,
-        "retired": [
-          "cam1"
-        ]
+        "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "cam1",
+          "id": "c1",
           "kind": "fixed_speed",
-          "lat": -33.8650229,
-          "lon": 151.2093,
+          "lat": -33.8705805,
+          "lon": 151.2114445,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": true,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "c1",
+        "level": "speak",
+        "spokenText": "Speed camera, 300 metres",
+        "flash": false,
+        "relation": "NEARBY"
+      }
+    },
+    {
+      "name": "stopped, with something further off",
+      "why": "800m is outside the 400m crawl range.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 0.0,
+        "headingDeg": null,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "c1",
+          "kind": "fixed_speed",
+          "lat": -33.8738872,
+          "lon": 151.2154273,
           "bearingDeg": null,
           "severity": 2,
           "confidence": 1.0,
@@ -741,7 +1566,125 @@
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
+      }
+    },
+    {
+      "name": "severity wins when two are both due",
+      "why": "A minor hazard is closer, but the closure is the one worth interrupting for.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "h1",
+          "kind": "hazard",
+          "lat": -33.8670014,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 1,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        },
+        {
+          "id": "cl1",
+          "kind": "closure",
+          "lat": -33.8625048,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 3,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "cl1",
+        "level": "speak",
+        "spokenText": "Road closed, 700 metres",
+        "flash": true,
+        "relation": "SAME_ROAD"
+      }
+    },
+    {
+      "name": "distance breaks a severity tie",
+      "why": "Two equally serious crashes; the near one is reached first.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 27.7778,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "far",
+          "kind": "crash",
+          "lat": -33.8643034,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        },
+        {
+          "id": "near",
+          "kind": "crash",
+          "lat": -33.866102,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 2,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "near",
+        "level": "speak",
+        "spokenText": "Crash ahead, 300 metres",
+        "flash": true,
+        "relation": "SAME_ROAD"
       }
     },
     {
@@ -759,9 +1702,20 @@
         "lastAnyAnnounceAt": null,
         "retired": []
       },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
       "threats": [
         {
-          "id": "clo1",
+          "id": "cl1",
           "kind": "closure",
           "lat": -33.8328272,
           "lon": 151.2093,
@@ -775,7 +1729,56 @@
       "expect": {
         "threatId": null,
         "level": null,
-        "spokenText": null
+        "spokenText": null,
+        "flash": false,
+        "relation": null
+      }
+    },
+    {
+      "name": "distances over a kilometre are spoken in kilometres",
+      "why": "A closure 1100m up my own road, comfortably inside the long lead.",
+      "car": {
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "speedMps": 36.1111,
+        "headingDeg": 0.0,
+        "stationaryForMs": 0
+      },
+      "state": {
+        "lastAnnouncedAt": {},
+        "lastAnyAnnounceAt": null,
+        "retired": []
+      },
+      "settings": {
+        "muted": false,
+        "flashEnabled": true,
+        "minSpeedKmh": 0.0,
+        "sameRoadLeadMultiplier": 1.7,
+        "corridorHalfWidthM": 40.0,
+        "corridorWidenPerM": 0.02,
+        "corridorMaxHalfWidthM": 90.0
+      },
+      "kindOverrides": {},
+      "route": null,
+      "threats": [
+        {
+          "id": "cl1",
+          "kind": "closure",
+          "lat": -33.8589075,
+          "lon": 151.2093,
+          "bearingDeg": null,
+          "severity": 3,
+          "confidence": 1.0,
+          "isCamera": false,
+          "speedLimit": null
+        }
+      ],
+      "expect": {
+        "threatId": "cl1",
+        "level": "speak",
+        "spokenText": "Road closed, 1.1 kilometres",
+        "flash": true,
+        "relation": "SAME_ROAD"
       }
     }
   ]

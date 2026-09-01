@@ -18,6 +18,9 @@ private data class FixtureCase(
     val why: String,
     val car: CarState,
     val state: FixtureState,
+    val settings: FixtureSettings,
+    val kindOverrides: Map<String, KindSettings> = emptyMap(),
+    val route: List<RoutePoint>? = null,
     val threats: List<Threat>,
     val expect: FixtureExpect,
 )
@@ -29,17 +32,34 @@ private data class FixtureState(
     val retired: List<String> = emptyList(),
 )
 
+/** The tunable half of [AlertSettings]; the kind table arrives separately. */
+@Serializable
+private data class FixtureSettings(
+    val muted: Boolean = false,
+    val flashEnabled: Boolean = true,
+    val minSpeedKmh: Double = 0.0,
+    val sameRoadLeadMultiplier: Double = 1.7,
+    val corridorHalfWidthM: Double = 40.0,
+    val corridorWidenPerM: Double = 0.02,
+    val corridorMaxHalfWidthM: Double = 90.0,
+)
+
 @Serializable
 private data class FixtureExpect(
     val threatId: String? = null,
     val level: String? = null,
     val spokenText: String? = null,
+    val flash: Boolean = false,
+    val relation: String? = null,
 )
 
 /**
- * The contract between the two apps. These cases are written by hand from
- * docs/alert-engine.md; the Swift implementation runs the identical file. If
- * one platform starts behaving differently from the other, it fails here first.
+ * The contract between the two apps.
+ *
+ * The expectations in the fixture file are produced by a third implementation
+ * of the rules, written in Python from docs/alert-engine.md, so a bug shared by
+ * the Kotlin and Swift engines still fails here. The Swift suite reads the same
+ * file.
  */
 class AlertEngineFixtureTest {
 
@@ -54,6 +74,24 @@ class AlertEngineFixtureTest {
         val failures = mutableListOf<String>()
 
         for (case in fixtures.cases) {
+            val settings = AlertSettings(
+                muted = case.settings.muted,
+                flashEnabled = case.settings.flashEnabled,
+                minSpeedKmh = case.settings.minSpeedKmh,
+                sameRoadLeadMultiplier = case.settings.sameRoadLeadMultiplier,
+                corridorHalfWidthM = case.settings.corridorHalfWidthM,
+                corridorWidenPerM = case.settings.corridorWidenPerM,
+                corridorMaxHalfWidthM = case.settings.corridorMaxHalfWidthM,
+                kinds = AlertSettings.defaultKinds + case.kindOverrides,
+            )
+
+            // Trimming the route is the caller's job, so the fixture exercises
+            // aheadSlice on the way in exactly as the apps do.
+            val route = case.route?.let { geometry ->
+                val slice = RouteTracker.aheadSlice(geometry, case.car.lat, case.car.lon)
+                if (slice.size >= 2) RouteContext(slice) else null
+            }
+
             val result = AlertEngine.evaluate(
                 now = fixtures.now,
                 car = case.car,
@@ -63,18 +101,20 @@ class AlertEngineFixtureTest {
                     lastAnyAnnounceAt = case.state.lastAnyAnnounceAt,
                     retired = case.state.retired.toSet(),
                 ),
+                settings = settings,
+                route = route,
             )
 
             val expected = case.expect
             if (expected.threatId == null) {
                 if (result != null) {
-                    failures += "${case.name}: expected silence, got ${result.spokenText}"
+                    failures += "${case.name}: expected silence, got \"${result.spokenText}\""
                 }
                 continue
             }
 
             if (result == null) {
-                failures += "${case.name}: expected ${expected.spokenText}, got silence"
+                failures += "${case.name}: expected \"${expected.spokenText}\", got silence"
                 continue
             }
             if (result.threatId != expected.threatId) {
@@ -86,17 +126,36 @@ class AlertEngineFixtureTest {
             if (result.spokenText != expected.spokenText) {
                 failures += "${case.name}: expected \"${expected.spokenText}\", got \"${result.spokenText}\""
             }
+            if (result.flash != expected.flash) {
+                failures += "${case.name}: expected flash ${expected.flash}, got ${result.flash}"
+            }
+            if (result.relation.name != expected.relation) {
+                failures += "${case.name}: expected relation ${expected.relation}, got ${result.relation}"
+            }
         }
 
         assertTrue(failures.isEmpty(), "\n" + failures.joinToString("\n"))
     }
 
     @Test
-    fun `the fixture file covers both outcomes`() {
+    fun `the fixture file covers both outcomes and every relation`() {
         val silent = fixtures.cases.count { it.expect.threatId == null }
-        val announced = fixtures.cases.size - silent
-        assertTrue(silent >= 5, "too few silence cases: $silent")
-        assertTrue(announced >= 5, "too few announcement cases: $announced")
+        assertTrue(silent >= 8, "too few silence cases: $silent")
+        assertTrue(fixtures.cases.size - silent >= 8, "too few announcement cases")
+
+        val relations = fixtures.cases.mapNotNull { it.expect.relation }.toSet()
+        for (relation in Relation.entries) {
+            assertTrue(relation.name in relations, "no fixture exercises ${relation.name}")
+        }
+    }
+
+    @Test
+    fun `every fixture carries the reasoning behind it`() {
+        // A case whose expectation nobody can check by hand is a case that
+        // silently encodes whatever the code happened to do.
+        for (case in fixtures.cases) {
+            assertTrue(case.why.length > 30, "${case.name}: no usable explanation")
+        }
     }
 }
 
@@ -116,21 +175,69 @@ class AlertEngineUnitTest {
     }
 
     @Test
-    fun `trigger range respects its floor and ceiling`() {
-        val cam = camera()
+    fun `lead range respects its floor and ceiling`() {
         // Crawling: the flat range, not a metre of lead time.
-        assertEquals(AlertEngine.CRAWL_RANGE_M, AlertEngine.triggerRange(5.0, cam), 0.001)
+        assertEquals(AlertEngine.CRAWL_RANGE_M, AlertEngine.leadRange(5.0, 25.0), 0.001)
         // Slow but moving: time-based range would be tiny, so the floor applies.
-        assertEquals(AlertEngine.MIN_TRIGGER_M, AlertEngine.triggerRange(20.0, cam), 0.001)
+        assertEquals(AlertEngine.MIN_TRIGGER_M, AlertEngine.leadRange(20.0, 25.0), 0.001)
         // Absurdly fast: capped.
-        assertEquals(AlertEngine.MAX_TRIGGER_M, AlertEngine.triggerRange(400.0, cam), 0.001)
+        assertEquals(AlertEngine.MAX_TRIGGER_M, AlertEngine.leadRange(400.0, 25.0), 0.001)
     }
 
     @Test
-    fun `critical hazards get more warning than major ones at the same speed`() {
-        val critical = Threat("a", "closure", -33.86, 151.2, severity = 3)
-        val major = Threat("b", "crash", -33.86, 151.2, severity = 2)
-        assertTrue(AlertEngine.triggerRange(100.0, critical) > AlertEngine.triggerRange(100.0, major))
+    fun `a closure gets more warning than a crash at the same speed`() {
+        val settings = AlertSettings()
+        val closure = settings.forKind("closure").leadSeconds
+        val crash = settings.forKind("crash").leadSeconds
+        assertTrue(
+            AlertEngine.leadRange(100.0, closure) > AlertEngine.leadRange(100.0, crash),
+        )
+    }
+
+    @Test
+    fun `the corridor widens with distance and then stops`() {
+        val settings = AlertSettings()
+        assertEquals(40.0, AlertEngine.corridorHalfWidth(0.0, settings), 0.001)
+        assertEquals(50.0, AlertEngine.corridorHalfWidth(500.0, settings), 0.001)
+        assertEquals(80.0, AlertEngine.corridorHalfWidth(2000.0, settings), 0.001)
+        // Capped before it can reach the next street over.
+        assertEquals(90.0, AlertEngine.corridorHalfWidth(9000.0, settings), 0.001)
+    }
+
+    @Test
+    fun `being on my road always warns at least as early as being merely ahead`() {
+        // The property the whole same-road distinction rests on. If this ever
+        // inverts, the app warns later about the thing it is more sure of.
+        val settings = AlertSettings()
+        for (kindName in AlertSettings.defaultKinds.keys) {
+            val kind = settings.forKind(kindName)
+            for (speed in listOf(20.0, 50.0, 80.0, 100.0, 130.0)) {
+                val ahead = maxOf(kind.radiusM, AlertEngine.leadRange(speed, kind.leadSeconds))
+                val sameRoad = maxOf(
+                    kind.radiusM,
+                    AlertEngine.leadRange(speed, kind.leadSeconds * settings.sameRoadLeadMultiplier),
+                )
+                assertTrue(
+                    sameRoad >= ahead,
+                    "$kindName at $speed km/h: same-road $sameRoad < ahead $ahead",
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `a sideways threat is never reached by a long lead time`() {
+        // A police car 700m to the side must stay silent at any speed, because
+        // only the radius applies sideways.
+        val settings = AlertSettings()
+        val beside = Threat("p", "police", -33.8625, 151.2093)
+        for (speed in listOf(40.0, 80.0, 110.0, 140.0)) {
+            val car = CarState(-33.8688, 151.2093, speedMps = speed / 3.6, headingDeg = 90.0)
+            val result = AlertEngine.evaluate(
+                1L, car, listOf(beside), EngineState(), settings,
+            )
+            assertNull(result, "warned about a sideways threat at $speed km/h")
+        }
     }
 
     @Test

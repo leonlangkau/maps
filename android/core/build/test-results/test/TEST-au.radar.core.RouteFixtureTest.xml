@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="au.radar.core.RouteFixtureTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-01T16:59:02.913Z" hostname="vm" time="0.015">
+<testsuite name="au.radar.core.RouteFixtureTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-09-01T17:48:00.643Z" hostname="vm" time="0.01">
   <properties/>
-  <testcase name="the encoded polyline decodes to the expected points()" classname="au.radar.core.RouteFixtureTest" time="0.006"/>
-  <testcase name="the off-route threshold matches the fixture file()" classname="au.radar.core.RouteFixtureTest" time="0.002"/>
-  <testcase name="every progress case matches the independently computed expectation()" classname="au.radar.core.RouteFixtureTest" time="0.004"/>
+  <testcase name="the encoded polyline decodes to the expected points()" classname="au.radar.core.RouteFixtureTest" time="0.004"/>
+  <testcase name="the off-route threshold matches the fixture file()" classname="au.radar.core.RouteFixtureTest" time="0.001"/>
+  <testcase name="every progress case matches the independently computed expectation()" classname="au.radar.core.RouteFixtureTest" time="0.002"/>
   <testcase name="the decoded line measures the expected total length()" classname="au.radar.core.RouteFixtureTest" time="0.002"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

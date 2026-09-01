@@ -322,42 +322,6 @@ fun ThreatSheet(
     }
 }
 
-// MARK: - Settings
-
-@Composable
-fun SettingsSheet(cameraCount: Int, connected: Boolean, onDismiss: () -> Unit) {
-    GlassSheet(onDismiss = onDismiss) {
-        SheetTitle("Radar AU")
-        Spacer(Modifier.height(16.dp))
-
-        SettingRow("Cameras on this phone", "$cameraCount")
-        SettingRow("Live hazards", if (connected) "Connected" else "Offline")
-        SettingRow("Warnings", "Cameras, crashes, closures, hazards")
-
-        Spacer(Modifier.height(18.dp))
-        Text(
-            "Camera locations come from state government open data. Live hazards " +
-                "come from the road authorities. This app never detects or interferes " +
-                "with any enforcement signal.",
-            color = Color.White.copy(0.5f),
-            fontSize = 12.sp,
-        )
-    }
-}
-
-@Composable
-private fun SettingRow(label: String, value: String) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(vertical = 9.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, color = Color.White.copy(0.7f), fontSize = 14.sp)
-        Text(value, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-    }
-}
-
 // MARK: - Shared
 
 @Composable

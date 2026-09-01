@@ -4,6 +4,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sqrt
 
+@kotlinx.serialization.Serializable
 data class RoutePoint(val lat: Double, val lon: Double)
 
 /**
@@ -156,6 +157,84 @@ object RouteTracker {
             currentStep = steps.getOrNull(stepIndex),
             nextStep = steps.getOrNull(stepIndex + 1),
         )
+    }
+
+    /** Where a point sits relative to a polyline. */
+    data class OnLine(
+        /** Distance from the start of the line to the projected point. */
+        val alongM: Double,
+        /** Perpendicular distance from the line. */
+        val offM: Double,
+    )
+
+    /**
+     * Project any point onto a polyline. Used by the alert engine to ask how
+     * far ahead a threat is *along the road*, which is the only measure that
+     * stays right around a bend.
+     */
+    fun locate(geometry: List<RoutePoint>, lat: Double, lon: Double): OnLine? {
+        if (geometry.size < 2) return null
+
+        var cumulative = 0.0
+        var bestOff = Double.MAX_VALUE
+        var bestAlong = 0.0
+
+        for (i in 0 until geometry.size - 1) {
+            val a = geometry[i]
+            val b = geometry[i + 1]
+            val segment = Geo.distanceM(a.lat, a.lon, b.lat, b.lon)
+            val projection = projectOntoSegment(lat, lon, a, b)
+
+            if (projection.distanceM < bestOff) {
+                bestOff = projection.distanceM
+                bestAlong = cumulative + projection.t * segment
+            }
+            cumulative += segment
+        }
+        return OnLine(alongM = bestAlong, offM = bestOff)
+    }
+
+    /**
+     * The next [lengthM] of route starting from the car's position on it.
+     *
+     * The first point is the car snapped onto the line, so distances measured
+     * against the result are distances from the car, and anything with a
+     * positive along-value is genuinely in front.
+     */
+    fun aheadSlice(
+        geometry: List<RoutePoint>,
+        lat: Double,
+        lon: Double,
+        lengthM: Double = 6_000.0,
+    ): List<RoutePoint> {
+        if (geometry.size < 2) return emptyList()
+
+        var bestOff = Double.MAX_VALUE
+        var bestIndex = 0
+        var bestPoint = geometry[0]
+
+        for (i in 0 until geometry.size - 1) {
+            val projection = projectOntoSegment(lat, lon, geometry[i], geometry[i + 1])
+            if (projection.distanceM < bestOff) {
+                bestOff = projection.distanceM
+                bestIndex = i
+                bestPoint = RoutePoint(projection.lat, projection.lon)
+            }
+        }
+
+        val slice = ArrayList<RoutePoint>()
+        slice.add(bestPoint)
+        var travelled = 0.0
+        var previous = bestPoint
+
+        for (i in bestIndex + 1 until geometry.size) {
+            val point = geometry[i]
+            travelled += Geo.distanceM(previous.lat, previous.lon, point.lat, point.lon)
+            slice.add(point)
+            previous = point
+            if (travelled >= lengthM) break
+        }
+        return if (slice.size >= 2) slice else emptyList()
     }
 
     private data class Projection(val lat: Double, val lon: Double, val t: Double, val distanceM: Double)

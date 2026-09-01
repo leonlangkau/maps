@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="au.radar.core.AlertEngineUnitTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-09-01T16:59:02.724Z" hostname="vm" time="0.022">
+<testsuite name="au.radar.core.AlertEngineUnitTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-09-01T17:48:00.488Z" hostname="vm" time="0.031">
   <properties/>
-  <testcase name="nothing is announced with no threats at all()" classname="au.radar.core.AlertEngineUnitTest" time="0.001"/>
-  <testcase name="distances are spoken the way a person would say them()" classname="au.radar.core.AlertEngineUnitTest" time="0.002"/>
+  <testcase name="nothing is announced with no threats at all()" classname="au.radar.core.AlertEngineUnitTest" time="0.002"/>
+  <testcase name="distances are spoken the way a person would say them()" classname="au.radar.core.AlertEngineUnitTest" time="0.001"/>
   <testcase name="passing a threat retires it permanently()" classname="au.radar.core.AlertEngineUnitTest" time="0.001"/>
-  <testcase name="severity is capped for reports we only half believe()" classname="au.radar.core.AlertEngineUnitTest" time="0.001"/>
-  <testcase name="the cone narrows with speed and never leaves its bounds()" classname="au.radar.core.AlertEngineUnitTest" time="0.003"/>
+  <testcase name="the corridor widens with distance and then stops()" classname="au.radar.core.AlertEngineUnitTest" time="0.003"/>
+  <testcase name="severity is capped for reports we only half believe()" classname="au.radar.core.AlertEngineUnitTest" time="0.0"/>
+  <testcase name="the cone narrows with speed and never leaves its bounds()" classname="au.radar.core.AlertEngineUnitTest" time="0.0"/>
   <testcase name="a threat still ahead is not retired()" classname="au.radar.core.AlertEngineUnitTest" time="0.001"/>
-  <testcase name="trigger range respects its floor and ceiling()" classname="au.radar.core.AlertEngineUnitTest" time="0.002"/>
-  <testcase name="critical hazards get more warning than major ones at the same speed()" classname="au.radar.core.AlertEngineUnitTest" time="0.001"/>
-  <testcase name="recording an announcement blocks an immediate repeat()" classname="au.radar.core.AlertEngineUnitTest" time="0.002"/>
-  <testcase name="cameras always reach speaking severity()" classname="au.radar.core.AlertEngineUnitTest" time="0.001"/>
+  <testcase name="a closure gets more warning than a crash at the same speed()" classname="au.radar.core.AlertEngineUnitTest" time="0.0"/>
+  <testcase name="being on my road always warns at least as early as being merely ahead()" classname="au.radar.core.AlertEngineUnitTest" time="0.007"/>
+  <testcase name="lead range respects its floor and ceiling()" classname="au.radar.core.AlertEngineUnitTest" time="0.001"/>
+  <testcase name="a sideways threat is never reached by a long lead time()" classname="au.radar.core.AlertEngineUnitTest" time="0.001"/>
+  <testcase name="recording an announcement blocks an immediate repeat()" classname="au.radar.core.AlertEngineUnitTest" time="0.001"/>
+  <testcase name="cameras always reach speaking severity()" classname="au.radar.core.AlertEngineUnitTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

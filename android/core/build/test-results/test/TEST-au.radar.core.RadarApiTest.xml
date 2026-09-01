@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="au.radar.core.RadarApiTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-01T16:59:02.794Z" hostname="vm" time="0.117">
+<testsuite name="au.radar.core.RadarApiTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-01T17:48:00.546Z" hostname="vm" time="0.096">
   <properties/>
-  <testcase name="search encodes the query safely()" classname="au.radar.core.RadarApiTest" time="0.064"/>
-  <testcase name="alerts are requested with the bbox in lon lat order()" classname="au.radar.core.RadarApiTest" time="0.009"/>
-  <testcase name="a trailing slash on the base url does not double up()" classname="au.radar.core.RadarApiTest" time="0.003"/>
-  <testcase name="an error status becomes an ApiException carrying the code()" classname="au.radar.core.RadarApiTest" time="0.02"/>
-  <testcase name="a delta request carries the since cursor()" classname="au.radar.core.RadarApiTest" time="0.002"/>
-  <testcase name="a report posts the body as JSON()" classname="au.radar.core.RadarApiTest" time="0.011"/>
-  <testcase name="a duplicate vote is swallowed rather than thrown()" classname="au.radar.core.RadarApiTest" time="0.002"/>
+  <testcase name="search encodes the query safely()" classname="au.radar.core.RadarApiTest" time="0.048"/>
+  <testcase name="alerts are requested with the bbox in lon lat order()" classname="au.radar.core.RadarApiTest" time="0.005"/>
+  <testcase name="a trailing slash on the base url does not double up()" classname="au.radar.core.RadarApiTest" time="0.002"/>
+  <testcase name="an error status becomes an ApiException carrying the code()" classname="au.radar.core.RadarApiTest" time="0.015"/>
+  <testcase name="a delta request carries the since cursor()" classname="au.radar.core.RadarApiTest" time="0.006"/>
+  <testcase name="a report posts the body as JSON()" classname="au.radar.core.RadarApiTest" time="0.012"/>
+  <testcase name="a duplicate vote is swallowed rather than thrown()" classname="au.radar.core.RadarApiTest" time="0.001"/>
   <testcase name="every request carries the app token and the device id()" classname="au.radar.core.RadarApiTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

@@ -19,7 +19,12 @@ final class DriveModel: ObservableObject {
     @Published private(set) var postedLimit: Int?
     @Published private(set) var connected = true
     @Published private(set) var speedKmh: Double = 0
-    @Published var muted = false
+    @Published private(set) var settings = SettingsStore.load()
+    /// Bumped every time a warning wants the screen pulsed. The view watches the
+    /// value rather than a boolean so two flashes in a row both land.
+    @Published private(set) var flashAt: Int64 = 0
+
+    var muted: Bool { settings.muted }
 
     @Published var navMode: NavMode = .idle
     @Published var searchQuery = ""
@@ -136,8 +141,21 @@ final class DriveModel: ObservableObject {
         let now = Int64(Date().timeIntervalSince1970 * 1000)
         engineState = AlertEngine.retirePassed(engineState, car: car, threats: threats)
 
+        // Hand the engine the next few kilometres of route rather than the whole
+        // polyline. It lets the engine measure distance along the road — the
+        // only measure that stays right around a bend — without paying for a
+        // cross-country projection every second.
+        var routeContext: RouteContext?
+        if routeGeometry.count >= 2 {
+            let slice = RouteTracker.aheadSlice(
+                geometry: routeGeometry, lat: car.lat, lon: car.lon
+            )
+            if slice.count >= 2 { routeContext = RouteContext(aheadGeometry: slice) }
+        }
+
         guard let announcement = AlertEngine.evaluate(
-            now: now, car: car, threats: threats, state: engineState
+            now: now, car: car, threats: threats, state: engineState,
+            settings: settings, route: routeContext
         ) else { return }
 
         engineState = AlertEngine.record(engineState, announcement: announcement, now: now)
@@ -145,13 +163,29 @@ final class DriveModel: ObservableObject {
         postedLimit = threats
             .first { $0.id == announcement.threatId }
             .flatMap(AlertEngine.postedLimit)
-        if !muted { voice.announce(announcement) }
+
+        // Muting silences the voice, not the screen: someone driving with the
+        // radio up still wants to see it.
+        if announcement.flash { flashAt = now }
+        if !settings.muted { voice.announce(announcement) }
+    }
+
+    /// Every settings change goes through here, so nothing is saved by accident.
+    func update(settings newSettings: AlertSettings) {
+        settings = newSettings
+        SettingsStore.save(newSettings)
+    }
+
+    func toggleMute() {
+        var next = settings
+        next.muted.toggle()
+        update(settings: next)
     }
 
     /// Speak each turn twice at most: once with warning, once on approach. The
     /// step index guards the first; the distance band guards the second.
     private func speakManeuverIfDue(_ progress: RouteProgress) {
-        guard !muted, let instruction = RouteTracker.maneuverPrompt(progress) else { return }
+        guard !settings.muted, let instruction = RouteTracker.maneuverPrompt(progress) else { return }
 
         let far = (200...600).contains(progress.distanceToManeuverM)
         let near = progress.distanceToManeuverM < 60
@@ -180,7 +214,7 @@ final class DriveModel: ObservableObject {
             route = option
             routeGeometry = Polyline.decode(option.geometry)
             show(toast: "Rerouting")
-            if !muted { voice.speakNavigation("Rerouting") }
+            if !settings.muted { voice.speakNavigation("Rerouting") }
         }
     }
 

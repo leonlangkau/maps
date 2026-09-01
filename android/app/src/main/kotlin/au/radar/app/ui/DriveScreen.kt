@@ -214,12 +214,18 @@ fun DriveScreen(
         }
 
         if (showSettings) {
-            SettingsSheet(
+            SettingsScreen(
+                settings = state.settings,
                 cameraCount = state.cameras.size,
                 connected = state.connected,
+                onChange = viewModel::updateSettings,
                 onDismiss = { showSettings = false },
             )
         }
+
+        // Above every sheet: a warning worth flashing for is worth seeing over
+        // whatever else is open.
+        FlashOverlay(flashAt = state.flashAt)
     }
 }
 

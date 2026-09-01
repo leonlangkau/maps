@@ -163,6 +163,80 @@ public enum RouteTracker {
         )
     }
 
+    /// Where a point sits relative to a polyline.
+    public struct OnLine: Sendable {
+        /// Distance from the start of the line to the projected point.
+        public let alongM: Double
+        /// Perpendicular distance from the line.
+        public let offM: Double
+    }
+
+    /// Project any point onto a polyline. Used by the alert engine to ask how
+    /// far ahead a threat is *along the road*, which is the only measure that
+    /// stays right around a bend.
+    public static func locate(
+        geometry: [RoutePoint], lat: Double, lon: Double
+    ) -> OnLine? {
+        guard geometry.count >= 2 else { return nil }
+
+        var cumulative = 0.0
+        var bestOff = Double.greatestFiniteMagnitude
+        var bestAlong = 0.0
+
+        for i in 0..<(geometry.count - 1) {
+            let a = geometry[i]
+            let b = geometry[i + 1]
+            let segment = Geo.distanceM(a.lat, a.lon, b.lat, b.lon)
+            let projection = projectOntoSegment(lat: lat, lon: lon, a: a, b: b)
+
+            if projection.distanceM < bestOff {
+                bestOff = projection.distanceM
+                bestAlong = cumulative + projection.t * segment
+            }
+            cumulative += segment
+        }
+        return OnLine(alongM: bestAlong, offM: bestOff)
+    }
+
+    /// The next `lengthM` of route starting from the car's position on it.
+    ///
+    /// The first point is the car snapped onto the line, so distances measured
+    /// against the result are distances from the car, and anything with a
+    /// positive along-value is genuinely in front.
+    public static func aheadSlice(
+        geometry: [RoutePoint], lat: Double, lon: Double, lengthM: Double = 6_000
+    ) -> [RoutePoint] {
+        guard geometry.count >= 2 else { return [] }
+
+        var bestOff = Double.greatestFiniteMagnitude
+        var bestIndex = 0
+        var bestPoint = geometry[0]
+
+        for i in 0..<(geometry.count - 1) {
+            let projection = projectOntoSegment(
+                lat: lat, lon: lon, a: geometry[i], b: geometry[i + 1]
+            )
+            if projection.distanceM < bestOff {
+                bestOff = projection.distanceM
+                bestIndex = i
+                bestPoint = RoutePoint(lat: projection.lat, lon: projection.lon)
+            }
+        }
+
+        var slice: [RoutePoint] = [bestPoint]
+        var travelled = 0.0
+        var previous = bestPoint
+
+        for i in (bestIndex + 1)..<geometry.count {
+            let point = geometry[i]
+            travelled += Geo.distanceM(previous.lat, previous.lon, point.lat, point.lon)
+            slice.append(point)
+            previous = point
+            if travelled >= lengthM { break }
+        }
+        return slice.count >= 2 ? slice : []
+    }
+
     private struct Projection {
         let lat: Double
         let lon: Double

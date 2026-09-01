@@ -12,6 +12,9 @@ private struct FixtureCase: Decodable {
     let why: String
     let car: CarState
     let state: FixtureState
+    let settings: FixtureSettings
+    let kindOverrides: [String: KindSettings]
+    let route: [RoutePoint]?
     let threats: [Threat]
     let expect: FixtureExpect
 }
@@ -22,19 +25,33 @@ private struct FixtureState: Decodable {
     let retired: [String]
 }
 
+/// The tunable half of `AlertSettings`; the kind table arrives separately.
+private struct FixtureSettings: Decodable {
+    let muted: Bool
+    let flashEnabled: Bool
+    let minSpeedKmh: Double
+    let sameRoadLeadMultiplier: Double
+    let corridorHalfWidthM: Double
+    let corridorWidenPerM: Double
+    let corridorMaxHalfWidthM: Double
+}
+
 private struct FixtureExpect: Decodable {
     let threatId: String?
     let level: String?
     let spokenText: String?
+    let flash: Bool
+    let relation: String?
 }
 
-/// The contract between the two apps. These cases are written by hand from
-/// `docs/alert-engine.md`; the Kotlin implementation runs the identical file. If
-/// one platform starts behaving differently from the other, it fails here first.
+/// The contract between the two apps.
+///
+/// The expectations in the fixture file are produced by a third implementation
+/// of the rules, written in Python from `docs/alert-engine.md`, so a bug shared
+/// by the Swift and Kotlin engines still fails here. The Kotlin suite reads the
+/// same file.
 final class AlertEngineFixtureTests: XCTestCase {
 
-    /// Read the fixtures from the repository rather than copying them into the
-    /// test bundle, so the two platforms can never drift onto different copies.
     private func loadFixtures() throws -> FixtureDoc {
         let here = URL(fileURLWithPath: #filePath)
         let repoRoot = here
@@ -43,12 +60,10 @@ final class AlertEngineFixtureTests: XCTestCase {
             .deletingLastPathComponent()  // -> RadarKit/
             .deletingLastPathComponent()  // -> ios/
             .deletingLastPathComponent()  // -> repository root
-        let fixtures = repoRoot
+        let url = repoRoot
             .appendingPathComponent("shared")
             .appendingPathComponent("alert-engine-fixtures.json")
-
-        let data = try Data(contentsOf: fixtures)
-        return try JSONDecoder().decode(FixtureDoc.self, from: data)
+        return try JSONDecoder().decode(FixtureDoc.self, from: try Data(contentsOf: url))
     }
 
     func testEverySharedFixtureBehavesAsSpecified() throws {
@@ -56,6 +71,27 @@ final class AlertEngineFixtureTests: XCTestCase {
         var failures: [String] = []
 
         for testCase in doc.cases {
+            let settings = AlertSettings(
+                muted: testCase.settings.muted,
+                flashEnabled: testCase.settings.flashEnabled,
+                minSpeedKmh: testCase.settings.minSpeedKmh,
+                sameRoadLeadMultiplier: testCase.settings.sameRoadLeadMultiplier,
+                corridorHalfWidthM: testCase.settings.corridorHalfWidthM,
+                corridorWidenPerM: testCase.settings.corridorWidenPerM,
+                corridorMaxHalfWidthM: testCase.settings.corridorMaxHalfWidthM,
+                kinds: AlertSettings.defaultKinds.merging(testCase.kindOverrides) { _, new in new }
+            )
+
+            // Trimming the route is the caller's job, so the fixture exercises
+            // aheadSlice on the way in exactly as the apps do.
+            var route: RouteContext?
+            if let geometry = testCase.route {
+                let slice = RouteTracker.aheadSlice(
+                    geometry: geometry, lat: testCase.car.lat, lon: testCase.car.lon
+                )
+                if slice.count >= 2 { route = RouteContext(aheadGeometry: slice) }
+            }
+
             let result = AlertEngine.evaluate(
                 now: doc.now,
                 car: testCase.car,
@@ -64,7 +100,9 @@ final class AlertEngineFixtureTests: XCTestCase {
                     lastAnnouncedAt: testCase.state.lastAnnouncedAt,
                     lastAnyAnnounceAt: testCase.state.lastAnyAnnounceAt,
                     retired: Set(testCase.state.retired)
-                )
+                ),
+                settings: settings,
+                route: route
             )
 
             guard let expectedId = testCase.expect.threatId else {
@@ -82,30 +120,46 @@ final class AlertEngineFixtureTests: XCTestCase {
             }
 
             if result.threatId != expectedId {
-                failures.append(
-                    "\(testCase.name): expected threat \(expectedId), got \(result.threatId)"
-                )
+                failures.append("\(testCase.name): expected threat \(expectedId), got \(result.threatId)")
             }
             if result.level.rawValue != testCase.expect.level {
-                failures.append(
-                    "\(testCase.name): expected level \(testCase.expect.level ?? "?"), got \(result.level.rawValue)"
-                )
+                failures.append("\(testCase.name): expected level \(testCase.expect.level ?? "?"), got \(result.level.rawValue)")
             }
             if result.spokenText != testCase.expect.spokenText {
-                failures.append(
-                    "\(testCase.name): expected \"\(testCase.expect.spokenText ?? "")\", got \"\(result.spokenText)\""
-                )
+                failures.append("\(testCase.name): expected \"\(testCase.expect.spokenText ?? "")\", got \"\(result.spokenText)\"")
+            }
+            if result.flash != testCase.expect.flash {
+                failures.append("\(testCase.name): expected flash \(testCase.expect.flash), got \(result.flash)")
+            }
+            if result.relation.rawValue != testCase.expect.relation {
+                failures.append("\(testCase.name): expected relation \(testCase.expect.relation ?? "?"), got \(result.relation.rawValue)")
             }
         }
 
         XCTAssertTrue(failures.isEmpty, "\n" + failures.joined(separator: "\n"))
     }
 
-    func testFixtureFileCoversBothOutcomes() throws {
+    func testFixtureFileCoversBothOutcomesAndEveryRelation() throws {
         let doc = try loadFixtures()
         let silent = doc.cases.filter { $0.expect.threatId == nil }.count
-        XCTAssertGreaterThanOrEqual(silent, 5, "too few silence cases")
-        XCTAssertGreaterThanOrEqual(doc.cases.count - silent, 5, "too few announcement cases")
+        XCTAssertGreaterThanOrEqual(silent, 8, "too few silence cases")
+        XCTAssertGreaterThanOrEqual(doc.cases.count - silent, 8, "too few announcement cases")
+
+        let relations = Set(doc.cases.compactMap(\.expect.relation))
+        for relation in Relation.allCases {
+            XCTAssertTrue(
+                relations.contains(relation.rawValue),
+                "no fixture exercises \(relation.rawValue)"
+            )
+        }
+    }
+
+    func testEveryFixtureCarriesTheReasoningBehindIt() throws {
+        // A case whose expectation nobody can check by hand is a case that
+        // silently encodes whatever the code happened to do.
+        for testCase in try loadFixtures().cases {
+            XCTAssertGreaterThan(testCase.why.count, 30, "\(testCase.name): no usable explanation")
+        }
     }
 }
 
@@ -123,29 +177,76 @@ final class AlertEngineUnitTests: XCTestCase {
         XCTAssertEqual(AlertEngine.coneHalfAngle(speedKmh: -10), 70, accuracy: 0.001)
     }
 
-    func testTriggerRangeRespectsFloorAndCeiling() {
-        let cam = camera()
+    func testLeadRangeRespectsFloorAndCeiling() {
         XCTAssertEqual(
-            AlertEngine.triggerRange(speedKmh: 5, threat: cam), AlertEngine.crawlRangeM,
-            accuracy: 0.001
+            AlertEngine.leadRange(speedKmh: 5, leadSeconds: 25),
+            AlertEngine.crawlRangeM, accuracy: 0.001
         )
         XCTAssertEqual(
-            AlertEngine.triggerRange(speedKmh: 20, threat: cam), AlertEngine.minTriggerM,
-            accuracy: 0.001
+            AlertEngine.leadRange(speedKmh: 20, leadSeconds: 25),
+            AlertEngine.minTriggerM, accuracy: 0.001
         )
         XCTAssertEqual(
-            AlertEngine.triggerRange(speedKmh: 400, threat: cam), AlertEngine.maxTriggerM,
-            accuracy: 0.001
+            AlertEngine.leadRange(speedKmh: 400, leadSeconds: 25),
+            AlertEngine.maxTriggerM, accuracy: 0.001
         )
     }
 
-    func testCriticalHazardsGetMoreWarningThanMajorOnes() {
-        let critical = Threat(id: "a", kind: "closure", lat: -33.86, lon: 151.2, severity: 3)
-        let major = Threat(id: "b", kind: "crash", lat: -33.86, lon: 151.2, severity: 2)
+    func testAClosureGetsMoreWarningThanACrash() {
+        let settings = AlertSettings()
+        let closure = settings.forKind("closure").leadSeconds
+        let crash = settings.forKind("crash").leadSeconds
         XCTAssertGreaterThan(
-            AlertEngine.triggerRange(speedKmh: 100, threat: critical),
-            AlertEngine.triggerRange(speedKmh: 100, threat: major)
+            AlertEngine.leadRange(speedKmh: 100, leadSeconds: closure),
+            AlertEngine.leadRange(speedKmh: 100, leadSeconds: crash)
         )
+    }
+
+    func testCorridorWidensWithDistanceThenStops() {
+        let settings = AlertSettings()
+        XCTAssertEqual(AlertEngine.corridorHalfWidth(distanceM: 0, settings: settings), 40, accuracy: 0.001)
+        XCTAssertEqual(AlertEngine.corridorHalfWidth(distanceM: 500, settings: settings), 50, accuracy: 0.001)
+        XCTAssertEqual(AlertEngine.corridorHalfWidth(distanceM: 2_000, settings: settings), 80, accuracy: 0.001)
+        XCTAssertEqual(AlertEngine.corridorHalfWidth(distanceM: 9_000, settings: settings), 90, accuracy: 0.001)
+    }
+
+    func testBeingOnMyRoadAlwaysWarnsAtLeastAsEarly() {
+        // The property the whole same-road distinction rests on. If this ever
+        // inverts, the app warns later about the thing it is more sure of.
+        let settings = AlertSettings()
+        for (name, kind) in AlertSettings.defaultKinds {
+            for speed in [20.0, 50.0, 80.0, 100.0, 130.0] {
+                let ahead = max(
+                    kind.radiusM,
+                    AlertEngine.leadRange(speedKmh: speed, leadSeconds: kind.leadSeconds)
+                )
+                let sameRoad = max(
+                    kind.radiusM,
+                    AlertEngine.leadRange(
+                        speedKmh: speed,
+                        leadSeconds: kind.leadSeconds * settings.sameRoadLeadMultiplier
+                    )
+                )
+                XCTAssertGreaterThanOrEqual(
+                    sameRoad, ahead, "\(name) at \(speed) km/h inverted"
+                )
+            }
+        }
+    }
+
+    func testSidewaysThreatIsNeverReachedByALongLeadTime() {
+        // A police car 700m to the side must stay silent at any speed, because
+        // only the radius applies sideways.
+        let beside = Threat(id: "p", kind: "police", lat: -33.8625, lon: 151.2093)
+        for speed in [40.0, 80.0, 110.0, 140.0] {
+            let car = CarState(
+                lat: -33.8688, lon: 151.2093, speedMps: speed / 3.6, headingDeg: 90
+            )
+            XCTAssertNil(
+                AlertEngine.evaluate(now: 1, car: car, threats: [beside], state: EngineState()),
+                "warned about a sideways threat at \(speed) km/h"
+            )
+        }
     }
 
     func testSeverityIsCappedForHalfBelievedReports() {

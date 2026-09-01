@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import au.radar.core.AlertEngine
+import au.radar.core.AlertSettings
 import au.radar.core.Announcement
 import au.radar.core.CarState
 import au.radar.core.EngineState
@@ -14,6 +15,7 @@ import au.radar.core.RadarApi
 import au.radar.core.ReportRequest
 import au.radar.core.RouteOption
 import au.radar.core.RoutePoint
+import au.radar.core.RouteContext
 import au.radar.core.RouteProgress
 import au.radar.core.RouteTracker
 import au.radar.core.Threat
@@ -35,7 +37,12 @@ data class DriveUiState(
     val speedKmh: Double = 0.0,
     val postedLimit: Int? = null,
     val connected: Boolean = true,
-    val muted: Boolean = false,
+    val settings: AlertSettings = AlertSettings(),
+    /**
+     * Bumped every time a warning wants the screen pulsed. The UI watches the
+     * value rather than a boolean so two flashes in a row both land.
+     */
+    val flashAt: Long = 0,
     val navMode: NavMode = NavMode.IDLE,
     val searchQuery: String = "",
     val searchResults: List<PlaceResult> = emptyList(),
@@ -48,6 +55,7 @@ data class DriveUiState(
     val toast: String? = null,
 ) {
     val threats: List<Threat> get() = cameras + hazards
+    val muted: Boolean get() = settings.muted
 }
 
 /** Wires location to the engine to the voice, and keeps the map fed. */
@@ -61,6 +69,7 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
     )
 
     private val store = CameraStore(application)
+    private val settingsStore = SettingsStore(application)
     private val voice = AlertVoice(application)
     private val locations = LocationSource(application)
 
@@ -81,6 +90,10 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
     private val refetchAfterMetres = 4_000.0
     private val pollIntervalMs = 30_000L
     private val rerouteCooldownMs = 20_000L
+
+    init {
+        _state.value = _state.value.copy(settings = settingsStore.load())
+    }
 
     fun start() {
         if (locationJob != null) return
@@ -110,7 +123,13 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleMute() {
-        _state.value = _state.value.copy(muted = !_state.value.muted)
+        updateSettings(_state.value.settings.copy(muted = !_state.value.settings.muted))
+    }
+
+    /** Every settings change goes through here, so nothing is saved by accident. */
+    fun updateSettings(settings: AlertSettings) {
+        _state.value = _state.value.copy(settings = settings)
+        settingsStore.save(settings)
     }
 
     fun dismissToast() {
@@ -140,7 +159,7 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                 if (progress.isOffRoute) {
                     maybeReroute(car)
                 } else {
-                    speakManeuverIfDue(progress, next.muted)
+                    speakManeuverIfDue(progress, next.settings.muted)
                 }
             }
         }
@@ -149,15 +168,37 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
         val now = System.currentTimeMillis()
         engineState = AlertEngine.retirePassed(engineState, car, threats)
 
-        val announcement = AlertEngine.evaluate(now, car, threats, engineState)
+        // Hand the engine the next few kilometres of route rather than the whole
+        // polyline. It lets the engine measure distance along the road — which
+        // is the only measure that stays right around a bend — without paying
+        // for a cross-country projection every second.
+        val routeContext = if (next.routeGeometry.size >= 2) {
+            RouteTracker.aheadSlice(next.routeGeometry, car.lat, car.lon)
+                .takeIf { it.size >= 2 }
+                ?.let { RouteContext(it) }
+        } else {
+            null
+        }
+
+        val announcement = AlertEngine.evaluate(
+            now = now,
+            car = car,
+            threats = threats,
+            state = engineState,
+            settings = next.settings,
+            route = routeContext,
+        )
         if (announcement != null) {
             engineState = AlertEngine.record(engineState, announcement, now)
             next = next.copy(
                 lastAnnouncement = announcement,
                 postedLimit = threats.firstOrNull { it.id == announcement.threatId }
                     ?.let { AlertEngine.postedLimit(it) },
+                // Muting silences the voice, not the screen: someone driving
+                // with the radio up still wants to see it.
+                flashAt = if (announcement.flash) now else next.flashAt,
             )
-            if (!next.muted) voice.announce(announcement)
+            if (!next.settings.muted) voice.announce(announcement)
         }
 
         _state.value = next

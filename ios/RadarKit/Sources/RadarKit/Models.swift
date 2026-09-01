@@ -91,7 +91,29 @@ public struct Announcement: Codable, Equatable, Sendable {
     public let threatId: String
     public let level: AnnouncementLevel
     public let spokenText: String
+    /// How far away it is. Measured along the road when we are following a
+    /// route, straight-line otherwise.
     public let distanceM: Double
+    /// Pulse the screen as well as speaking, for warnings worth not missing.
+    public let flash: Bool
+    /// Why this one was raised: on my road, in front of me, or simply close.
+    public let relation: Relation
+
+    public init(
+        threatId: String,
+        level: AnnouncementLevel,
+        spokenText: String,
+        distanceM: Double,
+        flash: Bool = false,
+        relation: Relation = .ahead
+    ) {
+        self.threatId = threatId
+        self.level = level
+        self.spokenText = spokenText
+        self.distanceM = distanceM
+        self.flash = flash
+        self.relation = relation
+    }
 }
 
 // MARK: - API payloads
