@@ -55,7 +55,7 @@ struct DriveView: View {
             set: { if !$0 { model.endNavigation() } }
         )) {
             RoutePreviewSheet(model: model)
-                .presentationDetents([.height(280)])
+                .presentationDetents([.medium, .large])
                 .presentationBackground(.thinMaterial)
         }
         .sheet(item: $model.selectedThreat) { threat in

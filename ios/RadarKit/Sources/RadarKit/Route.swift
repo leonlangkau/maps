@@ -281,6 +281,59 @@ public enum RouteTracker {
         )
     }
 
+    /// Which of these threats sit on this route.
+    ///
+    /// This is what lets the route picker say something Google Maps will not:
+    /// "four minutes longer, two fewer cameras". Comparing alternatives on
+    /// duration alone throws away the one axis this app knows about.
+    ///
+    /// A bounding-box pass runs first, because the country-wide camera bundle is
+    /// thousands of points and all but a handful are nowhere near any given
+    /// route. Only the survivors are projected onto the line.
+    public static func threatsOn(
+        geometry: [RoutePoint],
+        threats: [Threat],
+        corridorM: Double = AlertEngine.routeCorridorM
+    ) -> [Threat] {
+        guard geometry.count >= 2, !threats.isEmpty else { return [] }
+
+        var minLat = Double.greatestFiniteMagnitude
+        var maxLat = -Double.greatestFiniteMagnitude
+        var minLon = Double.greatestFiniteMagnitude
+        var maxLon = -Double.greatestFiniteMagnitude
+        for point in geometry {
+            minLat = min(minLat, point.lat)
+            maxLat = max(maxLat, point.lat)
+            minLon = min(minLon, point.lon)
+            maxLon = max(maxLon, point.lon)
+        }
+
+        // Pad the box by the corridor so a threat just outside the extreme
+        // vertices is not discarded before it can be measured properly.
+        let padLat = corridorM / 111_194.926
+        let padLon = padLat / max(cos((minLat + maxLat) / 2 * .pi / 180), 0.01)
+
+        return threats.filter { threat in
+            threat.lat >= minLat - padLat && threat.lat <= maxLat + padLat
+                && threat.lon >= minLon - padLon && threat.lon <= maxLon + padLon
+        }.filter { threat in
+            guard let found = locate(geometry: geometry, lat: threat.lat, lon: threat.lon)
+            else { return false }
+            return found.offM <= corridorM
+        }
+    }
+
+    /// A one-line summary of what a route will put in front of you.
+    public static func describeThreats(_ threats: [Threat]) -> String? {
+        let cameras = threats.filter(\.isCamera).count
+        let hazards = threats.count - cameras
+
+        var parts: [String] = []
+        if cameras > 0 { parts.append(cameras == 1 ? "1 camera" : "\(cameras) cameras") }
+        if hazards > 0 { parts.append(hazards == 1 ? "1 hazard" : "\(hazards) hazards") }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+
     /// "In 400 metres, turn left" — the phrasing a person expects to hear.
     public static func maneuverPrompt(_ progress: RouteProgress) -> String? {
         guard let step = progress.currentStep else { return nil }

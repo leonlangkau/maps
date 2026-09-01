@@ -284,6 +284,60 @@ object RouteTracker {
         )
     }
 
+    /**
+     * Which of these threats sit on this route.
+     *
+     * This is what lets the route picker say something Google Maps will not:
+     * "four minutes longer, two fewer cameras". Comparing alternatives on
+     * duration alone throws away the one axis this app knows about.
+     *
+     * A bounding-box pass runs first, because the country-wide camera bundle is
+     * thousands of points and all but a handful are nowhere near any given
+     * route. Only the survivors are projected onto the line.
+     */
+    fun threatsOn(
+        geometry: List<RoutePoint>,
+        threats: List<Threat>,
+        corridorM: Double = AlertEngine.ROUTE_CORRIDOR_M,
+    ): List<Threat> {
+        if (geometry.size < 2 || threats.isEmpty()) return emptyList()
+
+        var minLat = Double.MAX_VALUE
+        var maxLat = -Double.MAX_VALUE
+        var minLon = Double.MAX_VALUE
+        var maxLon = -Double.MAX_VALUE
+        for (point in geometry) {
+            if (point.lat < minLat) minLat = point.lat
+            if (point.lat > maxLat) maxLat = point.lat
+            if (point.lon < minLon) minLon = point.lon
+            if (point.lon > maxLon) maxLon = point.lon
+        }
+
+        // Pad the box by the corridor so a threat just outside the extreme
+        // vertices is not discarded before it can be measured properly.
+        val padLat = corridorM / 111_194.926
+        val padLon = padLat / cos(Math.toRadians((minLat + maxLat) / 2)).coerceAtLeast(0.01)
+
+        return threats.filter { threat ->
+            threat.lat in (minLat - padLat)..(maxLat + padLat) &&
+                threat.lon in (minLon - padLon)..(maxLon + padLon)
+        }.filter { threat ->
+            val found = locate(geometry, threat.lat, threat.lon)
+            found != null && found.offM <= corridorM
+        }
+    }
+
+    /** A one-line summary of what a route will put in front of you. */
+    fun describeThreats(threats: List<Threat>): String? {
+        val cameras = threats.count { it.isCamera }
+        val hazards = threats.size - cameras
+        val parts = buildList {
+            if (cameras > 0) add(if (cameras == 1) "1 camera" else "$cameras cameras")
+            if (hazards > 0) add(if (hazards == 1) "1 hazard" else "$hazards hazards")
+        }
+        return parts.joinToString(", ").ifEmpty { null }
+    }
+
     /** "In 400 metres, turn left" — the phrasing a person expects to hear. */
     fun maneuverPrompt(progress: RouteProgress): String? {
         val step = progress.currentStep ?: return null

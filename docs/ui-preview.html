@@ -403,6 +403,19 @@
   }
   .slider-label { display: flex; justify-content: space-between; font-size: 9.5px; color: rgba(255, 255, 255, 0.62); }
 
+  .route-choice {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 11px 14px; border-radius: 14px;
+  }
+  .rc-top { display: flex; align-items: baseline; gap: 7px; }
+  .rc-time { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rc-dist { font-size: 10px; color: rgba(255, 255, 255, 0.6); }
+  .rc-extra { font-size: 10px; color: rgba(255, 255, 255, 0.45); }
+  .rc-threats { font-size: 10.5px; font-weight: 500; padding-top: 2px; }
+  .rc-threats.warn { color: #F2C94C; }
+  .rc-threats.good { color: #7BD8A4; }
+  .rc-tick { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
   /* ---- Diagram ---- */
   figure.diagram { margin: 0; display: flex; flex-direction: column; gap: 1rem; }
   figure.diagram svg { max-width: 100%; height: auto; display: block; }
@@ -525,7 +538,7 @@
     <div class="meta-strip">
       <span><b>Map</b> MapLibre + self-hosted tiles</span>
       <span><b>Backend</b> Cloudflare Workers</span>
-      <span><b>Tested</b> 107 passing</span>
+      <span><b>Tested</b> 121 passing</span>
       <span><b>App shells</b> not yet compiled</span>
     </div>
   </header>
@@ -707,6 +720,41 @@
         </figcaption>
       </figure>
 
+
+      <!-- 7. Route picker -->
+      <figure class="screen">
+        <div class="phone"><div class="phone-screen" data-map data-route>
+          <div class="chrome" style="opacity:.35"></div>
+          <div class="scrim"></div>
+          <div class="glass sheet">
+            <div>
+              <h4>Parramatta Station</h4>
+              <p class="sub">Argyle St, Parramatta NSW 2150</p>
+            </div>
+            <div class="glass route-choice tint-route">
+              <div>
+                <div class="rc-top"><span class="rc-time">24 min</span><span class="rc-dist">18.4 km</span></div>
+                <div class="rc-threats warn">3 cameras, 1 hazard</div>
+              </div>
+              <svg viewBox="0 0 24 24" class="rc-tick"><path d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div class="glass route-choice">
+              <div>
+                <div class="rc-top"><span class="rc-time">27 min</span><span class="rc-dist">21.0 km</span><span class="rc-extra">+3 min</span></div>
+                <div class="rc-threats good">Nothing on this one</div>
+              </div>
+            </div>
+            <div class="sheet-actions">
+              <div class="glass action">Cancel</div>
+              <div class="glass action tint-route">Start</div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="name">Choosing a route</span>
+          <span class="note">The line no general navigation app can write: three minutes longer, nothing on it. Comparing routes on time alone throws away the one axis this app knows about.</span>
+        </figcaption>
+      </figure>
 
       <!-- 7. Police flash -->
       <figure class="screen">
@@ -1040,9 +1088,9 @@
         <span class="body">Feed merging, camera ingest, caching, the Waze circuit breaker, and the cron pruning that had a table-wiping bug in it.</span>
       </div>
       <div class="status-card">
-        <span class="label ok">Tested — 46 passing</span>
+        <span class="label ok">Tested — 60 passing</span>
         <span class="title">Alert &amp; route engine</span>
-        <span class="body">Every rule above, pinned to 35 shared fixtures whose expectations come from a third implementation of the spec — so a bug both engines share still fails.</span>
+        <span class="body">Every rule above, pinned to 43 shared fixtures whose expectations come from a third implementation of the spec, plus eight property tests over ~28,000 random cases.</span>
       </div>
       <div class="status-card">
         <span class="label warn">Written, never compiled</span>

@@ -188,7 +188,9 @@ fun DriveScreen(
         if (state.navMode == NavMode.PREVIEWING) {
             RoutePreviewSheet(
                 destination = state.destination,
-                route = state.route,
+                choices = state.routeChoices,
+                selected = state.selectedRoute,
+                onSelect = viewModel::selectRoute,
                 onStart = viewModel::startNavigation,
                 onCancel = viewModel::endNavigation,
             )

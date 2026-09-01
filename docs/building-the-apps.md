@@ -4,7 +4,7 @@ Neither app has ever been compiled. They were written in a Linux container with
 no Xcode and no Android SDK, so the first build of each will almost certainly
 turn up small things — a missing import, an API that moved between library
 versions. The parts that were testable have been tested: the Worker (61 tests)
-and the Kotlin alert, route and API engines (42 tests).
+and the Kotlin alert, route and API engines (60 tests).
 
 Both apps need the backend running first. See
 [cloudflare-setup.md](cloudflare-setup.md).
@@ -103,5 +103,3 @@ Waze layer's risk stays acceptable — TestFlight builds are not on the store.
   untested.
 - **On-device import of a licensed camera set.** See
   [data-sources.md](data-sources.md).
-- **Alternative routes.** The Worker asks Mapbox for them and the API returns
-  them; neither app offers a way to pick one.

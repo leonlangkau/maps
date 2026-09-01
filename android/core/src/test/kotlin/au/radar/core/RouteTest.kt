@@ -216,3 +216,74 @@ class RouteTrackerFormattingTest {
         )
     }
 }
+
+class ThreatsOnRouteTest {
+
+    /** A straight run due north, a point every 500 m — the same shape the fixtures use. */
+    private val route: List<RoutePoint> by lazy {
+        val fixtures = Json { ignoreUnknownKeys = true }
+            .decodeFromString<Map<String, kotlinx.serialization.json.JsonElement>>(
+                File("../../shared/route-fixtures.json").readText(),
+            )
+        Polyline.decode(
+            fixtures["polyline6"].toString().trim('"'),
+        )
+    }
+
+    private fun threat(id: String, lat: Double, lon: Double, isCamera: Boolean = true) =
+        Threat(id = id, kind = "fixed_speed", lat = lat, lon = lon, isCamera = isCamera)
+
+    @Test
+    fun `a threat on the line is counted`() {
+        val midpoint = route[4]
+        val found = RouteTracker.threatsOn(route, listOf(threat("a", midpoint.lat, midpoint.lon)))
+        assertEquals(1, found.size)
+    }
+
+    @Test
+    fun `a threat well off the line is not counted`() {
+        val midpoint = route[4]
+        // Roughly 200 m east: far outside the 45 m route corridor.
+        val found = RouteTracker.threatsOn(
+            route,
+            listOf(threat("a", midpoint.lat, midpoint.lon + 0.00216)),
+        )
+        assertTrue(found.isEmpty(), "counted a threat 200 m off the route")
+    }
+
+    @Test
+    fun `a threat just inside the corridor is counted`() {
+        val midpoint = route[4]
+        // Roughly 30 m east, inside the 45 m corridor.
+        val found = RouteTracker.threatsOn(
+            route,
+            listOf(threat("a", midpoint.lat, midpoint.lon + 0.000324)),
+        )
+        assertEquals(1, found.size, "missed a threat 30 m off the route")
+    }
+
+    @Test
+    fun `threats nowhere near the route are discarded cheaply`() {
+        // Melbourne, against a Sydney route. The bounding-box pass should drop
+        // it without ever projecting it.
+        val found = RouteTracker.threatsOn(route, listOf(threat("a", -37.8183, 144.9671)))
+        assertTrue(found.isEmpty())
+    }
+
+    @Test
+    fun `an empty route or no threats yields nothing`() {
+        assertTrue(RouteTracker.threatsOn(emptyList(), listOf(threat("a", -33.86, 151.2))).isEmpty())
+        assertTrue(RouteTracker.threatsOn(route, emptyList()).isEmpty())
+    }
+
+    @Test
+    fun `the summary reads the way a person would say it`() {
+        val cameras = listOf(threat("a", -33.86, 151.2), threat("b", -33.85, 151.2))
+        val hazard = threat("c", -33.84, 151.2, isCamera = false)
+
+        assertEquals("2 cameras", RouteTracker.describeThreats(cameras))
+        assertEquals("1 hazard", RouteTracker.describeThreats(listOf(hazard)))
+        assertEquals("2 cameras, 1 hazard", RouteTracker.describeThreats(cameras + hazard))
+        assertEquals(null, RouteTracker.describeThreats(emptyList()))
+    }
+}

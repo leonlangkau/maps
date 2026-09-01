@@ -42,8 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import au.radar.core.AlertEngine
+import au.radar.app.RouteChoice
 import au.radar.core.PlaceResult
-import au.radar.core.RouteOption
 import au.radar.core.RouteTracker
 import au.radar.core.Threat
 
@@ -159,44 +159,42 @@ fun SearchSheet(
 @Composable
 fun RoutePreviewSheet(
     destination: PlaceResult?,
-    route: RouteOption?,
+    choices: List<RouteChoice>,
+    selected: Int,
+    onSelect: (Int) -> Unit,
     onStart: () -> Unit,
     onCancel: () -> Unit,
 ) {
     GlassSheet(onDismiss = onCancel) {
-        SheetTitle(destination?.name ?: "Building a route…")
+        SheetTitle(destination?.name ?: "Building a route\u2026")
         destination?.address?.let {
             Spacer(Modifier.height(4.dp))
             Text(it, color = Color.White.copy(0.55f), fontSize = 13.sp)
         }
 
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(16.dp))
 
-        if (route == null) {
+        if (choices.isEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
                 Spacer(Modifier.width(12.dp))
                 Text("Working out the way there", color = Color.White.copy(0.7f), fontSize = 15.sp)
             }
         } else {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    RouteTracker.formatDuration(route.durationS),
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    RouteTracker.formatDistance(route.distanceM),
-                    fontSize = 17.sp,
-                    color = Color.White.copy(0.65f),
-                    modifier = Modifier.padding(bottom = 5.dp),
-                )
+            val fastest = choices.minOf { it.option.durationS }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                choices.forEachIndexed { index, choice ->
+                    RouteChoiceRow(
+                        choice = choice,
+                        selected = index == selected,
+                        extraSeconds = choice.option.durationS - fastest,
+                        onClick = { onSelect(index) },
+                    )
+                }
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(16.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             GlassActionButton(
@@ -209,8 +207,73 @@ fun RoutePreviewSheet(
                 onClick = onStart,
                 modifier = Modifier.weight(1f),
                 tint = Color(0xFF2F80ED),
-                enabled = route != null,
+                enabled = choices.isNotEmpty(),
             )
+        }
+    }
+}
+
+/**
+ * One alternative.
+ *
+ * The camera and hazard count is the reason this picker exists: comparing
+ * routes on time alone throws away the one axis this app knows about, and
+ * "three minutes longer, two fewer cameras" is a trade a driver can actually
+ * make.
+ */
+@Composable
+private fun RouteChoiceRow(
+    choice: RouteChoice,
+    selected: Boolean,
+    extraSeconds: Double,
+    onClick: () -> Unit,
+) {
+    GlassPanel(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        tint = if (selected) Color(0xFF2F80ED) else Color.Unspecified,
+        strong = selected,
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        RouteTracker.formatDuration(choice.option.durationS),
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        RouteTracker.formatDistance(choice.option.distanceM),
+                        color = Color.White.copy(0.6f),
+                        fontSize = 12.sp,
+                    )
+                    if (extraSeconds >= 60) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "+${(extraSeconds / 60).toInt()} min",
+                            color = Color.White.copy(0.5f),
+                            fontSize = 12.sp,
+                        )
+                    }
+                }
+                Text(
+                    choice.threatSummary ?: "Nothing on this one",
+                    color = if (choice.threatSummary == null) Color(0xFF7BD8A4) else Color(0xFFF2C94C),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            if (selected) {
+                Icon(Icons.Filled.Check, contentDescription = "Selected", tint = Color.White)
+            }
         }
     }
 }

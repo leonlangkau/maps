@@ -30,6 +30,16 @@ import kotlinx.coroutines.launch
 /** Which of the app's four states the driver is in. */
 enum class NavMode { IDLE, SEARCHING, PREVIEWING, NAVIGATING }
 
+/**
+ * One route the router offered, with the thing this app knows that a general
+ * navigation app does not: what you will drive past on it.
+ */
+data class RouteChoice(
+    val option: RouteOption,
+    val geometry: List<RoutePoint>,
+    val threatSummary: String?,
+)
+
 data class DriveUiState(
     val cameras: List<Threat> = emptyList(),
     val hazards: List<Threat> = emptyList(),
@@ -50,6 +60,9 @@ data class DriveUiState(
     val destination: PlaceResult? = null,
     val route: RouteOption? = null,
     val routeGeometry: List<RoutePoint> = emptyList(),
+    /** Every alternative the router offered, with what each one drives past. */
+    val routeChoices: List<RouteChoice> = emptyList(),
+    val selectedRoute: Int = 0,
     val progress: RouteProgress? = null,
     val selectedThreat: Threat? = null,
     val toast: String? = null,
@@ -336,9 +349,22 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                         )
                         return@onSuccess
                     }
+                    val cameras = _state.value.cameras
+                    val choices = result.routes.map { candidate ->
+                        val geometry = Polyline.decode(candidate.geometry)
+                        RouteChoice(
+                            option = candidate,
+                            geometry = geometry,
+                            threatSummary = RouteTracker.describeThreats(
+                                RouteTracker.threatsOn(geometry, cameras),
+                            ),
+                        )
+                    }
                     _state.value = _state.value.copy(
                         route = option,
-                        routeGeometry = Polyline.decode(option.geometry),
+                        routeGeometry = choices.firstOrNull()?.geometry ?: emptyList(),
+                        routeChoices = choices,
+                        selectedRoute = 0,
                     )
                 }
                 .onFailure {
@@ -348,6 +374,17 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
         }
+    }
+
+    /** Swap to one of the alternatives before setting off. */
+    fun selectRoute(index: Int) {
+        val choices = _state.value.routeChoices
+        val choice = choices.getOrNull(index) ?: return
+        _state.value = _state.value.copy(
+            selectedRoute = index,
+            route = choice.option,
+            routeGeometry = choice.geometry,
+        )
     }
 
     fun startNavigation() {
@@ -362,6 +399,8 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
             navMode = NavMode.IDLE,
             route = null,
             routeGeometry = emptyList(),
+            routeChoices = emptyList(),
+            selectedRoute = 0,
             progress = null,
             destination = null,
         )

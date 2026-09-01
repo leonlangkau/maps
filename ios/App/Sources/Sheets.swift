@@ -80,6 +80,10 @@ struct SearchSheet: View {
 struct RoutePreviewSheet: View {
     @ObservedObject var model: DriveModel
 
+    private var fastest: Double {
+        model.routeChoices.map(\.option.durationS).min() ?? 0
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(model.destination?.name ?? "Building a route…")
@@ -93,28 +97,32 @@ struct RoutePreviewSheet: View {
                     .padding(.top, 4)
             }
 
-            Spacer().frame(height: 20)
+            Spacer().frame(height: 16)
 
-            if let route = model.route {
-                HStack(alignment: .lastTextBaseline, spacing: 12) {
-                    Text(RouteTracker.formatDuration(route.durationS))
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .monospacedDigit()
-                    Text(RouteTracker.formatDistance(route.distanceM))
-                        .font(.system(size: 17))
-                        .foregroundStyle(.white.opacity(0.65))
-                }
-            } else {
+            if model.routeChoices.isEmpty {
                 HStack(spacing: 12) {
                     ProgressView().controlSize(.small)
                     Text("Working out the way there")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.7))
                 }
+            } else {
+                GlassGroup(spacing: 10) {
+                    VStack(spacing: 8) {
+                        ForEach(model.routeChoices) { choice in
+                            RouteChoiceRow(
+                                choice: choice,
+                                isSelected: choice.id == model.selectedRoute,
+                                extraSeconds: choice.option.durationS - fastest
+                            ) {
+                                model.selectRoute(choice.id)
+                            }
+                        }
+                    }
+                }
             }
 
-            Spacer()
+            Spacer(minLength: 16)
 
             GlassGroup(spacing: 12) {
                 HStack(spacing: 12) {
@@ -123,7 +131,7 @@ struct RoutePreviewSheet: View {
                         title: "Start",
                         systemImage: "location.fill",
                         tint: RadarGlass.route,
-                        enabled: model.route != nil
+                        enabled: !model.routeChoices.isEmpty
                     ) {
                         model.startNavigation()
                     }
@@ -131,6 +139,58 @@ struct RoutePreviewSheet: View {
             }
         }
         .padding(24)
+    }
+}
+
+/// One alternative.
+///
+/// The camera and hazard count is the reason this picker exists: comparing
+/// routes on time alone throws away the one axis this app knows about, and
+/// "three minutes longer, two fewer cameras" is a trade a driver can actually
+/// make.
+private struct RouteChoiceRow: View {
+    let choice: RouteChoice
+    let isSelected: Bool
+    let extraSeconds: Double
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .lastTextBaseline, spacing: 8) {
+                        Text(RouteTracker.formatDuration(choice.option.durationS))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                        Text(RouteTracker.formatDistance(choice.option.distanceM))
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.6))
+                        if extraSeconds >= 60 {
+                            Text("+\(Int(extraSeconds / 60)) min")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                    }
+                    Text(choice.threatSummary ?? "Nothing on this one")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(
+                            choice.threatSummary == nil
+                                ? RadarGlass.affirm : RadarGlass.caution
+                        )
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.headline)
+                }
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .radarGlassPanel(cornerRadius: 16, tint: isSelected ? RadarGlass.route : nil)
     }
 }
 

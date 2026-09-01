@@ -2,6 +2,15 @@ import Combine
 import Foundation
 import RadarKit
 
+/// One route the router offered, with the thing this app knows that a general
+/// navigation app does not: what you will drive past on it.
+struct RouteChoice: Identifiable {
+    let id: Int
+    let option: RouteOption
+    let geometry: [RoutePoint]
+    let threatSummary: String?
+}
+
 /// Which of the app's four states the driver is in.
 enum NavMode {
     case idle
@@ -33,6 +42,9 @@ final class DriveModel: ObservableObject {
     @Published private(set) var destination: PlaceResult?
     @Published private(set) var route: RouteOption?
     @Published private(set) var routeGeometry: [RoutePoint] = []
+    /// Every alternative the router offered, with what each one drives past.
+    @Published private(set) var routeChoices: [RouteChoice] = []
+    @Published private(set) var selectedRoute = 0
     @Published private(set) var progress: RouteProgress?
     @Published var selectedThreat: Threat?
     @Published private(set) var toast: String?
@@ -315,13 +327,34 @@ final class DriveModel: ObservableObject {
                     show(toast: "No route found")
                     return
                 }
+                let choices = result.routes.enumerated().map { index, candidate -> RouteChoice in
+                    let geometry = Polyline.decode(candidate.geometry)
+                    return RouteChoice(
+                        id: index,
+                        option: candidate,
+                        geometry: geometry,
+                        threatSummary: RouteTracker.describeThreats(
+                            RouteTracker.threatsOn(geometry: geometry, threats: cameras)
+                        )
+                    )
+                }
+                routeChoices = choices
+                selectedRoute = 0
                 route = option
-                routeGeometry = Polyline.decode(option.geometry)
+                routeGeometry = choices.first?.geometry ?? []
             } catch {
                 navMode = .idle
                 show(toast: "Could not build a route")
             }
         }
+    }
+
+    /// Swap to one of the alternatives before setting off.
+    func selectRoute(_ index: Int) {
+        guard index < routeChoices.count else { return }
+        selectedRoute = index
+        route = routeChoices[index].option
+        routeGeometry = routeChoices[index].geometry
     }
 
     func startNavigation() {
@@ -335,6 +368,8 @@ final class DriveModel: ObservableObject {
         navMode = .idle
         route = nil
         routeGeometry = []
+        routeChoices = []
+        selectedRoute = 0
         progress = nil
         destination = nil
     }
