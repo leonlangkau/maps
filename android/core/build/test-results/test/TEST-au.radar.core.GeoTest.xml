@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="au.radar.core.GeoTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-01T16:22:52.092Z" hostname="vm" time="0.025">
+<testsuite name="au.radar.core.GeoTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-09-01T16:37:08.604Z" hostname="vm" time="0.023">
   <properties/>
   <testcase name="bearings read as compass directions()" classname="au.radar.core.GeoTest" time="0.001"/>
   <testcase name="Sydney to Melbourne is about 713 kilometres()" classname="au.radar.core.GeoTest" time="0.001"/>
-  <testcase name="bearing delta stays within zero and one eighty()" classname="au.radar.core.GeoTest" time="0.016"/>
+  <testcase name="bearing delta stays within zero and one eighty()" classname="au.radar.core.GeoTest" time="0.015"/>
   <testcase name="distance matches the Kotlin and TypeScript implementations()" classname="au.radar.core.GeoTest" time="0.001"/>
   <testcase name="bearing delta wraps across north()" classname="au.radar.core.GeoTest" time="0.001"/>
-  <testcase name="distance between a point and itself is zero()" classname="au.radar.core.GeoTest" time="0.001"/>
+  <testcase name="distance between a point and itself is zero()" classname="au.radar.core.GeoTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

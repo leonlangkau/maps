@@ -8,8 +8,8 @@ flooding, roadworks — and otherwise stays quiet.
 
 | Piece | State |
 |---|---|
-| `worker/` — Cloudflare Worker backend | Complete, 57 tests passing |
-| `android/core/` — alert engine and API client (pure Kotlin) | Complete, 30 tests passing |
+| `worker/` — Cloudflare Worker backend | Complete, 61 tests passing |
+| `android/core/` — alert engine and API client (pure Kotlin) | Complete, 29 tests passing |
 | `shared/` — the cross-platform alert engine fixtures | 22 cases |
 | `ios/RadarKit/` — the same engine and client in Swift | Written, not yet compiled |
 | `ios/App/` — SwiftUI app | Written, needs a Mac and Xcode |

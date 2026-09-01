@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="au.radar.core.ThreatMapperTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-01T16:22:52.234Z" hostname="vm" time="0.008">
+<testsuite name="au.radar.core.ThreatMapperTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-01T16:37:08.728Z" hostname="vm" time="0.006">
   <properties/>
-  <testcase name="alert features become threats with lon lat unswapped()" classname="au.radar.core.ThreatMapperTest" time="0.005"/>
+  <testcase name="alert features become threats with lon lat unswapped()" classname="au.radar.core.ThreatMapperTest" time="0.003"/>
   <testcase name="a feature with no usable coordinates is dropped, not crashed on()" classname="au.radar.core.ThreatMapperTest" time="0.001"/>
-  <testcase name="cameras map across with their posted limit intact()" classname="au.radar.core.ThreatMapperTest" time="0.001"/>
+  <testcase name="cameras map across with their posted limit intact()" classname="au.radar.core.ThreatMapperTest" time="0.002"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
