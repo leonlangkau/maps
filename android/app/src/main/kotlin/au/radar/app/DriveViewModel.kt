@@ -18,6 +18,7 @@ import au.radar.core.RoutePoint
 import au.radar.core.RouteContext
 import au.radar.core.RouteProgress
 import au.radar.core.RouteTracker
+import au.radar.core.SpeedReading
 import au.radar.core.Threat
 import au.radar.core.ThreatMapper
 import kotlinx.coroutines.Job
@@ -44,7 +45,7 @@ data class DriveUiState(
     val cameras: List<Threat> = emptyList(),
     val hazards: List<Threat> = emptyList(),
     val lastAnnouncement: Announcement? = null,
-    val speedKmh: Double = 0.0,
+    val speed: SpeedReading = SpeedReading(0.0, trusted = false),
     val postedLimit: Int? = null,
     val connected: Boolean = true,
     val settings: AlertSettings = AlertSettings(),
@@ -69,6 +70,7 @@ data class DriveUiState(
 ) {
     val threats: List<Threat> get() = cameras + hazards
     val muted: Boolean get() = settings.muted
+    val speedKmh: Double get() = speed.kmh
 }
 
 /** Wires location to the engine to the voice, and keeps the map fed. */
@@ -104,6 +106,16 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
     private val pollIntervalMs = 30_000L
     private val rerouteCooldownMs = 20_000L
 
+    /**
+     * How often to re-ask for the route while driving.
+     *
+     * The ETA only stays honest if traffic is re-read: a route built when the
+     * motorway was clear is a lie twenty minutes into a jam. Two minutes is
+     * frequent enough to track a queue forming and far inside the routing tier.
+     */
+    private val trafficRefreshMs = 120_000L
+    private var trafficJob: Job? = null
+
     init {
         _state.value = _state.value.copy(settings = settingsStore.load())
     }
@@ -119,7 +131,7 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         locationJob = viewModelScope.launch {
-            locations.updates().collect { car -> onFix(car) }
+            locations.updates().collect { fix -> onFix(fix) }
         }
 
         pollJob = viewModelScope.launch {
@@ -133,6 +145,7 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
     fun stop() {
         locationJob?.cancel(); locationJob = null
         pollJob?.cancel(); pollJob = null
+        trafficJob?.cancel(); trafficJob = null
     }
 
     fun toggleMute() {
@@ -151,9 +164,10 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
 
     // MARK: - The tick
 
-    private fun onFix(car: CarState) {
+    private fun onFix(fix: Fix) {
+        val car = fix.car
         lastCar = car
-        var next = _state.value.copy(speedKmh = car.speedKmh)
+        var next = _state.value.copy(speed = fix.speed)
 
         // Route progress first: a turn instruction is more urgent than a camera
         // three hundred metres further on, and it also feeds the ETA strip.
@@ -391,9 +405,49 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
         if (_state.value.route == null) return
         lastSpokenStep = -1
         _state.value = _state.value.copy(navMode = NavMode.NAVIGATING)
+
+        trafficJob?.cancel()
+        trafficJob = viewModelScope.launch {
+            while (true) {
+                delay(trafficRefreshMs)
+                refreshRouteForTraffic()
+            }
+        }
+    }
+
+    /**
+     * Re-ask for the route so the ETA and the traffic colouring stay current.
+     *
+     * This is not a reroute — the driver has not gone wrong — so it is silent.
+     * The step counter is nudged forward because a fresh route restarts its step
+     * numbering, and without that the turn you are already approaching would be
+     * announced a second time.
+     */
+    private suspend fun refreshRouteForTraffic() {
+        val car = lastCar ?: return
+        val destination = _state.value.destination ?: return
+        if (_state.value.navMode != NavMode.NAVIGATING) return
+
+        runCatching { api.route(car.lat, car.lon, destination.lat, destination.lon) }
+            .onSuccess { result ->
+                val option = result.routes.firstOrNull() ?: return@onSuccess
+                lastSpokenStep = 0
+                _state.value = _state.value.copy(
+                    route = option,
+                    routeGeometry = Polyline.decode(option.geometry),
+                    connected = true,
+                )
+            }
+            .onFailure {
+                // A missed refresh is not worth telling the driver about; the
+                // route they have is still the route they are on.
+                _state.value = _state.value.copy(connected = false)
+            }
     }
 
     fun endNavigation() {
+        trafficJob?.cancel()
+        trafficJob = null
         lastSpokenStep = -1
         _state.value = _state.value.copy(
             navMode = NavMode.IDLE,

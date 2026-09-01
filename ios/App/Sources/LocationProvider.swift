@@ -1,5 +1,6 @@
 import CoreLocation
 import Foundation
+import RadarKit
 
 /// Wraps CoreLocation and hands out a clean `CarState`.
 ///
@@ -12,6 +13,7 @@ final class LocationProvider: NSObject, ObservableObject, CLLocationManagerDeleg
 
     private let manager = CLLocationManager()
     private var stationarySince: Date?
+    private let speedFilter = SpeedFilter()
 
     /// Below this, a GPS course reading is mostly noise from the receiver
     /// wandering rather than the car actually pointing anywhere.
@@ -24,6 +26,8 @@ final class LocationProvider: NSObject, ObservableObject, CLLocationManagerDeleg
         let headingDeg: Double?
         let stationaryForMs: Int64
         let accuracyM: Double
+        /// The steadied speed, and whether the last fix was worth believing.
+        let speed: SpeedReading
     }
 
     override init() {
@@ -62,7 +66,18 @@ final class LocationProvider: NSObject, ObservableObject, CLLocationManagerDeleg
         // A negative accuracy means the fix is invalid, not merely poor.
         guard fix.horizontalAccuracy >= 0 else { return }
 
-        let speed = max(0, fix.speed)
+        // The dial gets the filtered value; the alert engine gets it too, so
+        // a GPS spike cannot briefly stretch every warning range.
+        let reading = speedFilter.update(
+            SpeedSample(
+                rawMps: fix.speed,
+                // CoreLocation reports a negative accuracy when the reading is
+                // not to be trusted, which the filter already understands.
+                accuracyMps: fix.speedAccuracy,
+                timestampMs: Int64(fix.timestamp.timeIntervalSince1970 * 1000)
+            )
+        )
+        let speed = reading.mps
 
         if speed < 1.0 {
             if stationarySince == nil { stationarySince = fix.timestamp }
@@ -87,7 +102,8 @@ final class LocationProvider: NSObject, ObservableObject, CLLocationManagerDeleg
             speedMps: speed,
             headingDeg: heading,
             stationaryForMs: stationaryForMs,
-            accuracyM: fix.horizontalAccuracy
+            accuracyM: fix.horizontalAccuracy,
+            speed: reading
         )
     }
 

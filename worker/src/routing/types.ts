@@ -12,6 +12,14 @@ export interface RouteLeg {
   distanceM: number;
   durationS: number;
   steps: RouteStep[];
+  /**
+   * Traffic level for each pair of adjacent geometry points, so a leg with N
+   * points has N-1 entries: 'low' | 'moderate' | 'heavy' | 'severe' | 'unknown'.
+   *
+   * This is what makes the route line readable at a glance and what lets the
+   * picker say how much of an alternative is spent crawling.
+   */
+  congestion: string[];
 }
 
 export interface RouteOption {
@@ -20,6 +28,12 @@ export interface RouteOption {
   /** Encoded polyline, precision 6. */
   geometry: string;
   legs: RouteLeg[];
+  /**
+   * What this route would take with clear roads. The difference against
+   * durationS is the delay traffic is currently adding, which is the number a
+   * driver actually wants when choosing between alternatives.
+   */
+  durationFreeFlowS: number;
 }
 
 export interface RouteResult {

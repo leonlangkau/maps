@@ -65,10 +65,15 @@ export function valhallaProvider(baseUrl: string): RoutingProvider {
       const route: RouteOption = {
         distanceM: (trip.summary?.length ?? 0) * 1000,
         durationS: trip.summary?.time ?? 0,
+        durationFreeFlowS: trip.summary?.time ?? 0,
         geometry: trip.legs?.[0]?.shape ?? '',
         legs: (trip.legs ?? []).map((leg) => ({
           distanceM: (leg.summary?.length ?? 0) * 1000,
           durationS: leg.summary?.time ?? 0,
+          // Valhalla's open build has no live traffic, so there is nothing
+          // honest to put here. An empty array means "unknown", and the apps
+          // fall back to a single flat route colour.
+          congestion: [],
           steps: (leg.maneuvers ?? []).map((m) => ({
             instruction: m.instruction ?? '',
             distanceM: (m.length ?? 0) * 1000,

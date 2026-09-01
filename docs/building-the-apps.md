@@ -3,8 +3,8 @@
 Neither app has ever been compiled. They were written in a Linux container with
 no Xcode and no Android SDK, so the first build of each will almost certainly
 turn up small things — a missing import, an API that moved between library
-versions. The parts that were testable have been tested: the Worker (61 tests)
-and the Kotlin alert, route and API engines (60 tests).
+versions. The parts that were testable have been tested: the Worker (67 tests)
+and the Kotlin alert, route, speed and API engines (81 tests).
 
 Both apps need the backend running first. See
 [cloudflare-setup.md](cloudflare-setup.md).

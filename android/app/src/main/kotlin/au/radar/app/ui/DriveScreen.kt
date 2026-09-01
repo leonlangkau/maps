@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,9 +38,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,7 +52,7 @@ import au.radar.app.NavMode
 import au.radar.core.AlertEngine
 import au.radar.core.AnnouncementLevel
 import au.radar.core.RouteTracker
-import kotlin.math.roundToInt
+import au.radar.core.SpeedReading
 
 /**
  * The only screen that matters while driving: the map, whatever is being
@@ -74,6 +77,7 @@ fun DriveScreen(
             styleUrl = viewModel.styleUrl(),
             threats = state.threats,
             routeGeometry = state.routeGeometry,
+            route = state.route,
             followUser = state.navMode != NavMode.PREVIEWING,
             hasLocationPermission = hasLocationPermission,
             onThreatTapped = { id ->
@@ -130,7 +134,7 @@ fun DriveScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom,
             ) {
-                SpeedReadout(state.speedKmh, state.postedLimit)
+                SpeedReadout(state.speed, state.postedLimit)
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     GlassIconButton(
@@ -316,46 +320,75 @@ private fun StatusChip(text: String) {
 }
 
 /**
- * Speed, and the posted limit where a camera told us one. The limit is shown
- * as information, never as a judgement — the app does not tell you off.
+ * Speed, and the posted limit where a camera told us one.
+ *
+ * This one thing is deliberately not glass. Glass is lovely for chrome you
+ * glance past, and wrong for the number you check most often: it borrows
+ * whatever the map is doing underneath, so the same digits sit on dark asphalt
+ * one second and pale parkland the next. A solid disc with a red ring reads
+ * identically over anything, at a glance, in sunlight — which is the whole job.
+ *
+ * The ring is red and circular because that is the shape an Australian driver
+ * already reads as "a speed number". The posted limit sits beside it as a
+ * plainly different object so the two can never be confused for one another.
  */
 @Composable
-private fun SpeedReadout(speedKmh: Double, postedLimit: Int?) {
+private fun SpeedReadout(speed: SpeedReading, postedLimit: Int?) {
     Row(verticalAlignment = Alignment.Bottom) {
-        GlassPanel(shape = Glass.CardShape, strong = true) {
-            Column(
-                Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+        Box(
+            Modifier
+                .size(88.dp)
+                // Untrusted means we are coasting on a stale fix. Dimming says
+                // so without hiding the last number we were sure of.
+                .alpha(if (speed.trusted) 1f else 0.5f)
+                .shadow(10.dp, CircleShape)
+                .clip(CircleShape)
+                .background(Color(0xFFD42A2A)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                Modifier
+                    .size(66.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFF6F7F9)),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    "${speedKmh.roundToInt()}",
-                    fontSize = 42.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-                Text("km/h", fontSize = 11.sp, color = Color.White.copy(0.6f))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "${speed.displayKmh}",
+                        fontSize = 27.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF10141B),
+                        lineHeight = 28.sp,
+                    )
+                    Text(
+                        "km/h",
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF6B7280),
+                    )
+                }
             }
         }
 
         if (postedLimit != null) {
             Spacer(Modifier.width(10.dp))
-            Box(
-                Modifier.size(54.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                GlassPanel(
-                    modifier = Modifier.fillMaxSize(),
-                    shape = CircleShape,
-                    tint = Color(0xFFEB5757),
-                    strong = true,
+            GlassPanel(shape = Glass.CapsuleShape, strong = true) {
+                Column(
+                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
+                        "LIMIT",
+                        fontSize = 8.sp,
+                        letterSpacing = 1.2.sp,
+                        color = Color.White.copy(0.55f),
+                    )
+                    Text(
                         "$postedLimit",
-                        Modifier.align(Alignment.Center),
-                        fontSize = 20.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
-                        textAlign = TextAlign.Center,
                     )
                 }
             }

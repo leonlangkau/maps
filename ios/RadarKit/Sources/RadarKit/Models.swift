@@ -192,6 +192,21 @@ public struct RouteLeg: Codable, Sendable {
     public let distanceM: Double
     public let durationS: Double
     public let steps: [RouteStep]
+    /// Traffic level for each pair of adjacent geometry points, so a leg with N
+    /// points has N-1 entries. Empty when the provider has no live traffic.
+    public let congestion: [String]
+
+    public init(
+        distanceM: Double,
+        durationS: Double,
+        steps: [RouteStep] = [],
+        congestion: [String] = []
+    ) {
+        self.distanceM = distanceM
+        self.durationS = durationS
+        self.steps = steps
+        self.congestion = congestion
+    }
 }
 
 public struct RouteOption: Codable, Sendable {
@@ -199,6 +214,24 @@ public struct RouteOption: Codable, Sendable {
     public let durationS: Double
     public let geometry: String
     public let legs: [RouteLeg]
+    /// What this route would take with clear roads. The difference against
+    /// `durationS` is what traffic is costing right now, which is the number a
+    /// driver actually wants when choosing between alternatives.
+    public let durationFreeFlowS: Double
+
+    public init(
+        distanceM: Double,
+        durationS: Double,
+        geometry: String,
+        legs: [RouteLeg] = [],
+        durationFreeFlowS: Double = 0
+    ) {
+        self.distanceM = distanceM
+        self.durationS = durationS
+        self.geometry = geometry
+        self.legs = legs
+        self.durationFreeFlowS = durationFreeFlowS
+    }
 }
 
 public struct RouteResult: Codable, Sendable {

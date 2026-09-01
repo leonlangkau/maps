@@ -327,6 +327,60 @@ object RouteTracker {
         }
     }
 
+    /** A run of route with one traffic level, ready to draw as one line. */
+    data class CongestionSpan(val points: List<RoutePoint>, val level: String)
+
+    /**
+     * Split a route into runs of equal traffic level.
+     *
+     * Consecutive spans share their boundary point, so the drawn line has no
+     * gaps where the colour changes. A provider with no live traffic sends an
+     * empty array, which yields one unknown span covering the whole route — the
+     * apps then draw a single flat colour rather than nothing.
+     */
+    fun congestionSpans(
+        geometry: List<RoutePoint>,
+        congestion: List<String>,
+    ): List<CongestionSpan> {
+        if (geometry.size < 2) return emptyList()
+
+        // The contract is one entry per segment. Anything else is a provider
+        // mismatch we cannot interpret, so fall back rather than guess.
+        if (congestion.size != geometry.size - 1) {
+            return listOf(CongestionSpan(geometry, "unknown"))
+        }
+
+        val spans = ArrayList<CongestionSpan>()
+        var runStart = 0
+        for (i in congestion.indices) {
+            val isLast = i == congestion.size - 1
+            if (isLast || congestion[i + 1] != congestion[i]) {
+                spans.add(
+                    CongestionSpan(
+                        points = geometry.subList(runStart, i + 2).toList(),
+                        level = congestion[i],
+                    ),
+                )
+                runStart = i + 1
+            }
+        }
+        return spans
+    }
+
+    /** Seconds traffic is currently adding to a route, floored at zero. */
+    fun trafficDelayS(option: RouteOption): Double =
+        (option.durationS - option.durationFreeFlowS).coerceAtLeast(0.0)
+
+    /**
+     * How much traffic is costing, in the words a driver would use. Null when
+     * the delay is small enough not to be worth mentioning.
+     */
+    fun describeTraffic(option: RouteOption): String? {
+        val delay = trafficDelayS(option)
+        if (delay < 60) return null
+        return "${formatDuration(delay)} of traffic"
+    }
+
     /** A one-line summary of what a route will put in front of you. */
     fun describeThreats(threats: List<Threat>): String? {
         val cameras = threats.count { it.isCamera }

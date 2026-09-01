@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="au.radar.core.TrafficDelayTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-09-01T18:11:34.753Z" hostname="vm" time="0.006">
+  <properties/>
+  <testcase name="a route running faster than typical is not a negative delay()" classname="au.radar.core.TrafficDelayTest" time="0.002"/>
+  <testcase name="the delay is the gap against a clear run()" classname="au.radar.core.TrafficDelayTest" time="0.0"/>
+  <testcase name="a delay worth mentioning is described, a trivial one is not()" classname="au.radar.core.TrafficDelayTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

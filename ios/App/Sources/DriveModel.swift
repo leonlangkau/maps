@@ -27,13 +27,14 @@ final class DriveModel: ObservableObject {
     @Published private(set) var lastAnnouncement: Announcement?
     @Published private(set) var postedLimit: Int?
     @Published private(set) var connected = true
-    @Published private(set) var speedKmh: Double = 0
+    @Published private(set) var speed = SpeedReading(mps: 0, trusted: false)
     @Published private(set) var settings = SettingsStore.load()
     /// Bumped every time a warning wants the screen pulsed. The view watches the
     /// value rather than a boolean so two flashes in a row both land.
     @Published private(set) var flashAt: Int64 = 0
 
     var muted: Bool { settings.muted }
+    var speedKmh: Double { speed.kmh }
 
     @Published var navMode: NavMode = .idle
     @Published var searchQuery = ""
@@ -71,6 +72,14 @@ final class DriveModel: ObservableObject {
     private let pollInterval: UInt64 = 30 * 1_000_000_000
     private let rerouteCooldown: TimeInterval = 20
 
+    /// How often to re-ask for the route while driving.
+    ///
+    /// The ETA only stays honest if traffic is re-read: a route built when the
+    /// motorway was clear is a lie twenty minutes into a jam. Two minutes is
+    /// frequent enough to track a queue forming and far inside the routing tier.
+    private let trafficRefresh: UInt64 = 120 * 1_000_000_000
+    private var trafficTask: Task<Void, Never>?
+
     var threats: [Threat] { cameras + hazards }
 
     init() {
@@ -100,6 +109,7 @@ final class DriveModel: ObservableObject {
     func stop() {
         pollTask?.cancel()
         searchTask?.cancel()
+        trafficTask?.cancel()
         location.stop()
         voice.release()
     }
@@ -118,7 +128,7 @@ final class DriveModel: ObservableObject {
 
     private func onFix(_ snapshot: LocationProvider.CarStateSnapshot) {
         lastCar = snapshot
-        speedKmh = snapshot.speedMps * 3.6
+        speed = snapshot.speed
 
         let car = CarState(
             lat: snapshot.lat,
@@ -361,9 +371,45 @@ final class DriveModel: ObservableObject {
         guard route != nil else { return }
         lastSpokenStep = -1
         navMode = .navigating
+
+        trafficTask?.cancel()
+        trafficTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: self?.trafficRefresh ?? 120_000_000_000)
+                await self?.refreshRouteForTraffic()
+            }
+        }
+    }
+
+    /// Re-ask for the route so the ETA and the traffic colouring stay current.
+    ///
+    /// This is not a reroute — the driver has not gone wrong — so it is silent.
+    /// The step counter is nudged forward because a fresh route restarts its
+    /// step numbering, and without that the turn already being approached would
+    /// be announced a second time.
+    private func refreshRouteForTraffic() async {
+        guard navMode == .navigating, let car = lastCar, let destination else { return }
+
+        do {
+            let result = try await api.route(
+                fromLat: car.lat, fromLon: car.lon,
+                toLat: destination.lat, toLon: destination.lon
+            )
+            guard let option = result.routes.first else { return }
+            lastSpokenStep = 0
+            route = option
+            routeGeometry = Polyline.decode(option.geometry)
+            connected = true
+        } catch {
+            // A missed refresh is not worth telling the driver about; the route
+            // they have is still the route they are on.
+            connected = false
+        }
     }
 
     func endNavigation() {
+        trafficTask?.cancel()
+        trafficTask = nil
         lastSpokenStep = -1
         navMode = .idle
         route = nil

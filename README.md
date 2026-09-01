@@ -8,8 +8,8 @@ flooding, roadworks — and otherwise stays quiet.
 
 | Piece | State |
 |---|---|
-| `worker/` — Cloudflare Worker backend | Complete, 61 tests passing |
-| `android/core/` — alert, route and API engines (pure Kotlin) | Complete, 60 tests passing |
+| `worker/` — Cloudflare Worker backend | Complete, 67 tests passing |
+| `android/core/` — alert, route, speed and API engines (pure Kotlin) | Complete, 81 tests passing |
 | `shared/` — cross-platform engine fixtures | 43 cases |
 | `ios/RadarKit/` — the same engines and client in Swift | Written, not yet compiled |
 | `ios/App/` — SwiftUI app | Written, needs a Mac and Xcode |
@@ -49,11 +49,14 @@ implementation is already written for the day that arrangement stops suiting.
    up, through the dashboard.
 4. **[docs/data-sources.md](docs/data-sources.md)** — every feed, what it costs,
    and how to get a key.
-5. **[docs/waze-layer.md](docs/waze-layer.md)** — the one component with real
+5. **[docs/speed-and-traffic.md](docs/speed-and-traffic.md)** — why the
+   speedometer is filtered the way it is, and why it is the one thing that is
+   not glass.
+6. **[docs/waze-layer.md](docs/waze-layer.md)** — the one component with real
    risk attached. Read before enabling it.
-6. **[docs/building-the-apps.md](docs/building-the-apps.md)** — getting it onto a
+7. **[docs/building-the-apps.md](docs/building-the-apps.md)** — getting it onto a
    phone.
-7. **[docs/ui-preview.html](docs/ui-preview.html)** — the interface, screen by
+8. **[docs/ui-preview.html](docs/ui-preview.html)** — the interface, screen by
    screen. Open it in a browser.
 
 ## Is this legal?

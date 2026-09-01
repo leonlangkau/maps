@@ -323,6 +323,59 @@ public enum RouteTracker {
         }
     }
 
+    /// A run of route with one traffic level, ready to draw as one line.
+    public struct CongestionSpan: Sendable {
+        public let points: [RoutePoint]
+        public let level: String
+    }
+
+    /// Split a route into runs of equal traffic level.
+    ///
+    /// Consecutive spans share their boundary point, so the drawn line has no
+    /// gaps where the colour changes. A provider with no live traffic sends an
+    /// empty array, which yields one unknown span covering the whole route — the
+    /// apps then draw a single flat colour rather than nothing.
+    public static func congestionSpans(
+        geometry: [RoutePoint], congestion: [String]
+    ) -> [CongestionSpan] {
+        guard geometry.count >= 2 else { return [] }
+
+        // The contract is one entry per segment. Anything else is a provider
+        // mismatch we cannot interpret, so fall back rather than guess.
+        guard congestion.count == geometry.count - 1 else {
+            return [CongestionSpan(points: geometry, level: "unknown")]
+        }
+
+        var spans: [CongestionSpan] = []
+        var runStart = 0
+        for i in congestion.indices {
+            let isLast = i == congestion.count - 1
+            if isLast || congestion[i + 1] != congestion[i] {
+                spans.append(
+                    CongestionSpan(
+                        points: Array(geometry[runStart...(i + 1)]),
+                        level: congestion[i]
+                    )
+                )
+                runStart = i + 1
+            }
+        }
+        return spans
+    }
+
+    /// Seconds traffic is currently adding to a route, floored at zero.
+    public static func trafficDelayS(_ option: RouteOption) -> Double {
+        max(option.durationS - option.durationFreeFlowS, 0)
+    }
+
+    /// How much traffic is costing, in the words a driver would use. Nil when
+    /// the delay is small enough not to be worth mentioning.
+    public static func describeTraffic(_ option: RouteOption) -> String? {
+        let delay = trafficDelayS(option)
+        guard delay >= 60 else { return nil }
+        return "\(formatDuration(delay)) of traffic"
+    }
+
     /// A one-line summary of what a route will put in front of you.
     public static func describeThreats(_ threats: [Threat]) -> String? {
         let cameras = threats.filter(\.isCamera).count

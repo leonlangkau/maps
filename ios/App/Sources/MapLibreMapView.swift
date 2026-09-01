@@ -14,6 +14,7 @@ struct MapLibreMapView: UIViewRepresentable {
     let styleUrl: URL?
     let threats: [Threat]
     let routeGeometry: [RoutePoint]
+    let route: RouteOption?
     let followsUser: Bool
     let onThreatTapped: (String) -> Void
 
@@ -53,7 +54,7 @@ struct MapLibreMapView: UIViewRepresentable {
         mapView.userTrackingMode = followsUser ? .followWithCourse : .none
         context.coordinator.onThreatTapped = onThreatTapped
         context.coordinator.render(threats: threats, on: mapView)
-        context.coordinator.render(route: routeGeometry, on: mapView)
+        context.coordinator.render(route: routeGeometry, option: route, on: mapView)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -63,7 +64,7 @@ struct MapLibreMapView: UIViewRepresentable {
         var onThreatTapped: ((String) -> Void)?
 
         private var renderedThreatIds: [String] = []
-        private var renderedRouteCount = -1
+        private var renderedRouteSignature = ""
 
         func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
             installLayers(on: style)
@@ -86,8 +87,21 @@ struct MapLibreMapView: UIViewRepresentable {
                 style.addLayer(casing)
 
                 let line = MLNLineStyleLayer(identifier: routeLineLayer, source: source)
+                // Traffic reads off the line itself, so the driver can see where
+                // the delay is rather than only that there is one.
                 line.lineColor = NSExpression(
-                    forConstantValue: UIColor(red: 0.29, green: 0.66, blue: 1.0, alpha: 1)
+                    forMLNMatchingKey: NSExpression(forKeyPath: "congestion"),
+                    in: [
+                        NSExpression(forConstantValue: "moderate"):
+                            NSExpression(forConstantValue: UIColor.systemYellow),
+                        NSExpression(forConstantValue: "heavy"):
+                            NSExpression(forConstantValue: UIColor.systemOrange),
+                        NSExpression(forConstantValue: "severe"):
+                            NSExpression(forConstantValue: UIColor.systemRed),
+                    ],
+                    default: NSExpression(
+                        forConstantValue: UIColor(red: 0.29, green: 0.66, blue: 1.0, alpha: 1)
+                    )
                 )
                 line.lineWidth = NSExpression(forConstantValue: 6.5)
                 line.lineCap = NSExpression(forConstantValue: "round")
@@ -162,24 +176,39 @@ struct MapLibreMapView: UIViewRepresentable {
             source.shape = MLNShapeCollectionFeature(shapes: features)
         }
 
-        func render(route: [RoutePoint], on mapView: MLNMapView) {
+        func render(route: [RoutePoint], option: RouteOption?, on mapView: MLNMapView) {
             guard let style = mapView.style,
                   let source = style.source(withIdentifier: routeSource) as? MLNShapeSource
             else { return }
-            guard route.count != renderedRouteCount else { return }
-            renderedRouteCount = route.count
+
+            // Redraw when the shape changes or when the traffic reading does —
+            // the geometry can stay identical across a refresh while the
+            // colours move.
+            let signature = "\(route.count):\(option?.durationS ?? 0)"
+            guard signature != renderedRouteSignature else { return }
+            renderedRouteSignature = signature
 
             guard route.count >= 2 else {
                 source.shape = nil
                 return
             }
 
-            var coordinates = route.map {
-                CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)
-            }
-            source.shape = MLNPolylineFeature(
-                coordinates: &coordinates, count: UInt(coordinates.count)
-            )
+            // One feature per run of equal traffic, sharing boundary points so
+            // the line has no gaps where the colour changes.
+            let congestion = option?.legs.flatMap(\.congestion) ?? []
+            let features: [MLNPolylineFeature] = RouteTracker
+                .congestionSpans(geometry: route, congestion: congestion)
+                .map { span in
+                    var coordinates = span.points.map {
+                        CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)
+                    }
+                    let feature = MLNPolylineFeature(
+                        coordinates: &coordinates, count: UInt(coordinates.count)
+                    )
+                    feature.attributes = ["congestion": span.level]
+                    return feature
+                }
+            source.shape = MLNShapeCollectionFeature(shapes: features)
         }
 
         private func band(for threat: Threat) -> String {

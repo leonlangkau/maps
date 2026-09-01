@@ -20,6 +20,7 @@ struct DriveView: View {
                 styleUrl: model.styleUrl,
                 threats: model.threats,
                 routeGeometry: model.routeGeometry,
+                route: model.route,
                 followsUser: model.navMode != .previewing,
                 onThreatTapped: { id in
                     model.selectedThreat = model.threats.first { $0.id == id }
@@ -113,7 +114,7 @@ struct DriveView: View {
         GlassGroup(spacing: 16) {
             VStack(spacing: 14) {
                 HStack(alignment: .bottom) {
-                    SpeedReadout(speedKmh: model.speedKmh, postedLimit: model.postedLimit)
+                    SpeedReadout(speed: model.speed, postedLimit: model.postedLimit)
                     Spacer()
                     controlStack
                 }
@@ -253,33 +254,62 @@ private struct StatusChip: View {
     }
 }
 
-/// Speed, and the posted limit where a camera told us one. The limit is shown
-/// as information, never as a judgement — the app does not tell you off.
+/// Speed, and the posted limit where a camera told us one.
+///
+/// This one thing is deliberately not glass. Glass is lovely for chrome you
+/// glance past, and wrong for the number you check most often: it borrows
+/// whatever the map is doing underneath, so the same digits sit on dark asphalt
+/// one second and pale parkland the next. A solid disc with a red ring reads
+/// identically over anything, at a glance, in sunlight — which is the whole job.
+///
+/// The ring is red and circular because that is the shape an Australian driver
+/// already reads as "a speed number". The posted limit sits beside it as a
+/// plainly different object so the two can never be confused for one another.
 private struct SpeedReadout: View {
-    let speedKmh: Double
+    let speed: SpeedReading
     let postedLimit: Int?
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            VStack(spacing: 0) {
-                Text("\(Int(speedKmh.rounded()))")
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                Text("km/h")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.6))
+            ZStack {
+                Circle()
+                    .fill(Color(red: 0.83, green: 0.16, blue: 0.16))
+                    .frame(width: 88, height: 88)
+                    .shadow(color: .black.opacity(0.35), radius: 10, y: 3)
+
+                Circle()
+                    .fill(Color(red: 0.96, green: 0.97, blue: 0.98))
+                    .frame(width: 66, height: 66)
+
+                VStack(spacing: 0) {
+                    Text("\(speed.displayKmh)")
+                        .font(.system(size: 27, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(Color(red: 0.06, green: 0.08, blue: 0.11))
+                    Text("km/h")
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundStyle(Color(red: 0.42, green: 0.45, blue: 0.5))
+                }
             }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .radarGlassPanel(cornerRadius: 20)
+            // Untrusted means we are coasting on a stale fix. Dimming says so
+            // without hiding the last number we were sure of.
+            .opacity(speed.trusted ? 1 : 0.5)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(speed.displayKmh) kilometres per hour")
 
             if let postedLimit {
-                Text("\(postedLimit)")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .frame(width: 54, height: 54)
-                    .radarGlass(in: Circle(), tint: RadarGlass.warning)
+                VStack(spacing: 0) {
+                    Text("LIMIT")
+                        .font(.system(size: 8, weight: .medium))
+                        .tracking(1.2)
+                        .foregroundStyle(.white.opacity(0.55))
+                    Text("\(postedLimit)")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .radarGlassCapsule(interactive: false)
             }
         }
     }

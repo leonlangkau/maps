@@ -10,7 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import au.radar.core.AlertEngine
+import au.radar.core.RouteOption
 import au.radar.core.RoutePoint
+import au.radar.core.RouteTracker
 import au.radar.core.Threat
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -39,6 +41,9 @@ private const val ROUTE_SOURCE = "route"
 private const val ROUTE_CASING_LAYER = "route-casing"
 private const val ROUTE_LINE_LAYER = "route-line"
 
+/** Clear road, and the fallback for a provider with no traffic data. */
+private const val ROUTE_CLEAR = "#4AA8FF"
+
 /**
  * The map. MapLibre rather than Mapbox: the tiles come from our own R2 bucket,
  * so there is no per-map-load bill and no vendor to ask permission from.
@@ -52,6 +57,7 @@ fun MapScreen(
     styleUrl: String,
     threats: List<Threat>,
     routeGeometry: List<RoutePoint>,
+    route: RouteOption?,
     followUser: Boolean,
     hasLocationPermission: Boolean,
     onThreatTapped: (String) -> Unit,
@@ -84,7 +90,7 @@ fun MapScreen(
                 map.setStyle(Style.Builder().fromUri(styleUrl)) { style ->
                     holder.installLayers(style)
                     holder.renderThreats(threats)
-                    holder.renderRoute(routeGeometry)
+                    holder.renderRoute(routeGeometry, route)
                     if (hasLocationPermission) holder.followUser(context, map, style)
                 }
 
@@ -109,7 +115,7 @@ fun MapScreen(
         },
         update = {
             holder.renderThreats(threats)
-            holder.renderRoute(routeGeometry)
+            holder.renderRoute(routeGeometry, route)
             holder.setFollowing(followUser)
         },
         modifier = modifier,
@@ -119,7 +125,7 @@ fun MapScreen(
 private class MapHolder {
     var map: MapLibreMap? = null
     private var renderedThreatIds: List<String> = emptyList()
-    private var renderedRouteSize = -1
+    private var renderedRouteSignature: Pair<Int, Double>? = null
     private var following = true
 
     fun installLayers(style: Style) {
@@ -138,7 +144,17 @@ private class MapHolder {
             )
             style.addLayer(
                 LineLayer(ROUTE_LINE_LAYER, ROUTE_SOURCE).withProperties(
-                    PropertyFactory.lineColor("#4AA8FF"),
+                    // Traffic reads off the line itself, so the driver can see
+                    // where the delay is rather than only that there is one.
+                    PropertyFactory.lineColor(
+                        Expression.match(
+                            Expression.get("congestion"),
+                            Expression.literal(ROUTE_CLEAR),
+                            Expression.stop("moderate", Expression.literal("#F2C94C")),
+                            Expression.stop("heavy", Expression.literal("#F2994A")),
+                            Expression.stop("severe", Expression.literal("#EB5757")),
+                        ),
+                    ),
                     PropertyFactory.lineWidth(6.5f),
                     PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                     PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
@@ -209,19 +225,30 @@ private class MapHolder {
         )
     }
 
-    fun renderRoute(geometry: List<RoutePoint>) {
+    fun renderRoute(geometry: List<RoutePoint>, route: RouteOption?) {
         val style = map?.style ?: return
         val source = style.getSourceAs<GeoJsonSource>(ROUTE_SOURCE) ?: return
-        if (geometry.size == renderedRouteSize) return
-        renderedRouteSize = geometry.size
+
+        // Redraw when the shape changes or when the traffic reading does — the
+        // geometry can stay identical across a refresh while the colours move.
+        val signature = geometry.size to (route?.durationS ?: 0.0)
+        if (signature == renderedRouteSignature) return
+        renderedRouteSignature = signature
 
         if (geometry.size < 2) {
             source.setGeoJson(FeatureCollection.fromFeatures(emptyList<Feature>()))
             return
         }
 
-        val line = LineString.fromLngLats(geometry.map { Point.fromLngLat(it.lon, it.lat) })
-        source.setGeoJson(Feature.fromGeometry(line))
+        // One feature per run of equal traffic, sharing boundary points so the
+        // line has no gaps where the colour changes.
+        val congestion = route?.legs?.flatMap { it.congestion } ?: emptyList()
+        val features = RouteTracker.congestionSpans(geometry, congestion).map { span ->
+            Feature.fromGeometry(
+                LineString.fromLngLats(span.points.map { Point.fromLngLat(it.lon, it.lat) }),
+            ).apply { addStringProperty("congestion", span.level) }
+        }
+        source.setGeoJson(FeatureCollection.fromFeatures(features))
     }
 
     /** Frame a whole route on screen, for the preview before setting off. */

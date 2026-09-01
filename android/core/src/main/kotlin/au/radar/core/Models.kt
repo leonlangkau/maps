@@ -128,6 +128,11 @@ data class RouteLeg(
     val distanceM: Double,
     val durationS: Double,
     val steps: List<RouteStep> = emptyList(),
+    /**
+     * Traffic level for each pair of adjacent geometry points, so a leg with N
+     * points has N-1 entries. Empty when the provider has no live traffic.
+     */
+    val congestion: List<String> = emptyList(),
 )
 
 @Serializable
@@ -136,6 +141,12 @@ data class RouteOption(
     val durationS: Double,
     val geometry: String,
     val legs: List<RouteLeg> = emptyList(),
+    /**
+     * What this route would take with clear roads. The difference against
+     * [durationS] is what traffic is costing right now, which is the number a
+     * driver actually wants when choosing between alternatives.
+     */
+    val durationFreeFlowS: Double = 0.0,
 )
 
 @Serializable

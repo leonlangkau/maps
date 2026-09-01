@@ -177,6 +177,11 @@ private struct RouteChoiceRow: View {
                             choice.threatSummary == nil
                                 ? RadarGlass.affirm : RadarGlass.caution
                         )
+                    if let traffic = RouteTracker.describeTraffic(choice.option) {
+                        Text(traffic)
+                            .font(.caption2)
+                            .foregroundStyle(Color(red: 0.95, green: 0.6, blue: 0.29))
+                    }
                 }
                 Spacer()
                 if isSelected {

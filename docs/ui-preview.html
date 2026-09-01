@@ -286,19 +286,38 @@
 
   .bottom-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
 
-  .speed { display: flex; align-items: flex-end; gap: 7px; }
-  .speed .readout { padding: 7px 15px; text-align: center; }
-  .speed .value {
-    font-size: 27px; font-weight: 700; line-height: 1;
-    font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
-  }
-  .speed .unit { font-size: 8.5px; color: rgba(255, 255, 255, 0.6); letter-spacing: 0.04em; }
-  .speed .limit {
-    width: 38px; height: 38px; border-radius: 50%;
+  .speed { display: flex; align-items: flex-end; gap: 8px; }
+
+  /*
+    Deliberately not glass. Glass borrows whatever the map is doing underneath,
+    so the same digits sit on dark asphalt one second and pale parkland the
+    next. A solid disc reads identically over anything.
+  */
+  .dial {
+    width: 62px; height: 62px; border-radius: 50%; flex: none;
+    background: #D42A2A;
     display: grid; place-items: center;
-    font-size: 14px; font-weight: 700;
-    font-variant-numeric: tabular-nums;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.42);
   }
+  .dial-face {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: #F6F7F9;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .dial-face .value {
+    font-size: 19px; font-weight: 700; line-height: 1;
+    color: #10141B; font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+  }
+  .dial-face .unit { font-size: 6px; font-weight: 500; color: #6B7280; }
+  .dial.stale { opacity: 0.5; }
+
+  .limit {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 6px 10px;
+  }
+  .limit-label { font-size: 6px; letter-spacing: 0.12em; color: rgba(255, 255, 255, 0.55); }
+  .limit-value { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
   .controls { display: flex; flex-direction: column; align-items: center; gap: 8px; }
   .ctl { border-radius: 50%; display: grid; place-items: center; }
@@ -414,6 +433,7 @@
   .rc-threats { font-size: 10.5px; font-weight: 500; padding-top: 2px; }
   .rc-threats.warn { color: #F2C94C; }
   .rc-threats.good { color: #7BD8A4; }
+  .rc-traffic { font-size: 10px; color: #F2994A; }
   .rc-tick { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
   /* ---- Diagram ---- */
@@ -538,7 +558,7 @@
     <div class="meta-strip">
       <span><b>Map</b> MapLibre + self-hosted tiles</span>
       <span><b>Backend</b> Cloudflare Workers</span>
-      <span><b>Tested</b> 121 passing</span>
+      <span><b>Tested</b> 148 passing</span>
       <span><b>App shells</b> not yet compiled</span>
     </div>
   </header>
@@ -568,7 +588,7 @@
             <div class="spacer"></div>
             <div class="bottom-row">
               <div class="speed">
-                <div class="glass readout"><div class="value">62</div><div class="unit">km/h</div></div>
+                <div class="dial"><div class="dial-face"><div class="value">62</div><div class="unit">km/h</div></div></div>
               </div>
               <div class="controls">
                 <div class="glass ctl sm"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></div>
@@ -599,8 +619,8 @@
             <div class="spacer"></div>
             <div class="bottom-row">
               <div class="speed">
-                <div class="glass readout"><div class="value">104</div><div class="unit">km/h</div></div>
-                <div class="glass limit tint-danger">100</div>
+                <div class="dial"><div class="dial-face"><div class="value">104</div><div class="unit">km/h</div></div></div>
+                <div class="glass capsule limit"><span class="limit-label">LIMIT</span><span class="limit-value">100</span></div>
               </div>
               <div class="controls">
                 <div class="glass ctl sm"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></div>
@@ -628,7 +648,7 @@
             <div class="spacer"></div>
             <div class="bottom-row">
               <div class="speed">
-                <div class="glass readout"><div class="value">58</div><div class="unit">km/h</div></div>
+                <div class="dial"><div class="dial-face"><div class="value">58</div><div class="unit">km/h</div></div></div>
               </div>
               <div class="controls">
                 <div class="glass ctl md"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></div>
@@ -735,6 +755,7 @@
               <div>
                 <div class="rc-top"><span class="rc-time">24 min</span><span class="rc-dist">18.4 km</span></div>
                 <div class="rc-threats warn">3 cameras, 1 hazard</div>
+                <div class="rc-traffic">6 min of traffic</div>
               </div>
               <svg viewBox="0 0 24 24" class="rc-tick"><path d="M5 13l4 4L19 7"/></svg>
             </div>
@@ -771,7 +792,7 @@
             <div class="spacer"></div>
             <div class="bottom-row">
               <div class="speed">
-                <div class="glass readout"><div class="value">98</div><div class="unit">km/h</div></div>
+                <div class="dial"><div class="dial-face"><div class="value">98</div><div class="unit">km/h</div></div></div>
               </div>
               <div class="controls">
                 <div class="glass ctl md"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></div>
@@ -979,8 +1000,8 @@
               <div class="spacer"></div>
               <div class="bottom-row">
                 <div class="speed">
-                  <div class="glass readout"><div class="value">78</div><div class="unit">km/h</div></div>
-                  <div class="glass limit tint-danger">80</div>
+                  <div class="dial"><div class="dial-face"><div class="value">78</div><div class="unit">km/h</div></div></div>
+                  <div class="glass capsule limit"><span class="limit-label">LIMIT</span><span class="limit-value">80</span></div>
                 </div>
                 <div class="controls">
                   <div class="glass ctl md"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></div>
@@ -1065,6 +1086,14 @@
         <dd>Spoken twice at most — once around 200–600 m out, once inside 60 m. Never queued: a backlog of instructions is worse than none, because the one being read is no longer the one you are approaching.</dd>
       </div>
       <div class="spec-row">
+        <dt>The speedometer</dt>
+        <dd>The raw GNSS value is Doppler-derived and already beats the car's own dial, which the ADRs require to read high. The filtering only removes the jitter: smoothing that tightens to 0.15 s once a change is real, and a plausibility gate that clamps anything outside 4.5 m/s&sup2; of acceleration or 9 m/s&sup2; of braking, because that is a GPS glitch and not a car.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Traffic</dt>
+        <dd>Routes come from the traffic-aware profile, so they are routed around congestion rather than merely reporting it. The line is coloured by the per-segment congestion level, and the route is re-requested every two minutes while driving so the ETA does not go stale in a jam.</dd>
+      </div>
+      <div class="spec-row">
         <dt>Losing signal</dt>
         <dd>Cameras live on the phone, so it degrades to cameras-only rather than to nothing, and says so on screen.</dd>
       </div>
@@ -1083,14 +1112,14 @@
 
     <div class="status-grid">
       <div class="status-card">
-        <span class="label ok">Tested — 61 passing</span>
+        <span class="label ok">Tested — 67 passing</span>
         <span class="title">Backend</span>
-        <span class="body">Feed merging, camera ingest, caching, the Waze circuit breaker, and the cron pruning that had a table-wiping bug in it.</span>
+        <span class="body">Feed merging, camera ingest, caching, the Waze circuit breaker, the traffic annotations, and the cron pruning that had a table-wiping bug in it.</span>
       </div>
       <div class="status-card">
-        <span class="label ok">Tested — 60 passing</span>
+        <span class="label ok">Tested — 81 passing</span>
         <span class="title">Alert &amp; route engine</span>
-        <span class="body">Every rule above, pinned to 43 shared fixtures whose expectations come from a third implementation of the spec, plus eight property tests over ~28,000 random cases.</span>
+        <span class="body">Every rule above, pinned to 43 shared fixtures whose expectations come from a third implementation of the spec, plus the speed filter and eight property tests over ~28,000 random cases.</span>
       </div>
       <div class="status-card">
         <span class="label warn">Written, never compiled</span>
@@ -1149,7 +1178,13 @@
     <g class="route-layer" opacity="0">
       <path d="M130 430 C128 360 136 300 133 250 C131 214 126 196 96 178 C70 162 52 140 46 96"
             stroke="#0B3D63" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M130 430 C128 360 136 300 133 250 C131 214 126 196 96 178 C70 162 52 140 46 96"
+      <!-- Runs of equal traffic, sharing their boundary points so the line has
+           no gap where the colour changes. -->
+      <path d="M130 430 C128 360 136 300 133 250"
+            stroke="#4AA8FF" stroke-width="6.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M133 250 C131 214 126 196 96 178"
+            stroke="#F2994A" stroke-width="6.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M96 178 C70 162 52 140 46 96"
             stroke="#4AA8FF" stroke-width="6.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
 

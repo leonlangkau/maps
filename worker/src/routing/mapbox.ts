@@ -20,13 +20,29 @@ interface MapboxLeg {
   distance?: number;
   duration?: number;
   steps?: MapboxStep[];
+  annotation?: {
+    congestion?: string[];
+    duration?: number[];
+    speed?: number[];
+  };
 }
 
 interface MapboxRoute {
   distance?: number;
   duration?: number;
+  duration_typical?: number;
   geometry?: string;
   legs?: MapboxLeg[];
+}
+
+/** Mapbox occasionally emits nulls in the congestion array; normalise them. */
+const CONGESTION_LEVELS = new Set(['low', 'moderate', 'heavy', 'severe']);
+
+function toCongestion(raw: string[] | undefined): string[] {
+  if (!raw) return [];
+  return raw.map((level) =>
+    typeof level === 'string' && CONGESTION_LEVELS.has(level) ? level : 'unknown',
+  );
 }
 
 function toStep(step: MapboxStep): RouteStep {
@@ -44,6 +60,7 @@ function toLeg(leg: MapboxLeg): RouteLeg {
     distanceM: leg.distance ?? 0,
     durationS: leg.duration ?? 0,
     steps: (leg.steps ?? []).map(toStep),
+    congestion: toCongestion(leg.annotation?.congestion),
   };
 }
 
@@ -51,6 +68,10 @@ function toRoute(route: MapboxRoute): RouteOption {
   return {
     distanceM: route.distance ?? 0,
     durationS: route.duration ?? 0,
+    // duration_typical is what the trip usually takes at this time of day.
+    // Falling back to the live duration means "no delay" rather than a
+    // nonsensical negative one when Mapbox omits it.
+    durationFreeFlowS: route.duration_typical ?? route.duration ?? 0,
     geometry: route.geometry ?? '',
     legs: (route.legs ?? []).map(toLeg),
   };
@@ -66,7 +87,9 @@ export function mapboxProvider(token: string): RoutingProvider {
         `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${coords}` +
         `?access_token=${encodeURIComponent(token)}` +
         `&geometries=polyline6&overview=full&steps=true&alternatives=true` +
-        `&annotations=congestion,duration&language=en&voice_units=metric`;
+        // congestion paints the line; duration_typical is what the same trip
+        // usually takes, which is how we work out what traffic is costing.
+        `&annotations=congestion,duration,speed&language=en&voice_units=metric`;
 
       const res = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } }, 10000);
       if (!res.ok) {

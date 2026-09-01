@@ -270,6 +270,13 @@ private fun RouteChoiceRow(
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                 )
+                RouteTracker.describeTraffic(choice.option)?.let { traffic ->
+                    Text(
+                        traffic,
+                        color = Color(0xFFF2994A),
+                        fontSize = 11.sp,
+                    )
+                }
             }
             if (selected) {
                 Icon(Icons.Filled.Check, contentDescription = "Selected", tint = Color.White)
