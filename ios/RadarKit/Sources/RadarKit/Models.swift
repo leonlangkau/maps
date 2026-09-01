@@ -150,6 +150,20 @@ public struct RouteStep: Codable, Sendable {
     public let durationS: Double
     public let modifier: String?
     public let name: String?
+
+    public init(
+        instruction: String,
+        distanceM: Double,
+        durationS: Double,
+        modifier: String? = nil,
+        name: String? = nil
+    ) {
+        self.instruction = instruction
+        self.distanceM = distanceM
+        self.durationS = durationS
+        self.modifier = modifier
+        self.name = name
+    }
 }
 
 public struct RouteLeg: Codable, Sendable {

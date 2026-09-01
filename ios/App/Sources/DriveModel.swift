@@ -2,15 +2,35 @@ import Combine
 import Foundation
 import RadarKit
 
+/// Which of the app's four states the driver is in.
+enum NavMode {
+    case idle
+    case searching
+    case previewing
+    case navigating
+}
+
 /// Wires location to the engine to the voice, and keeps the map fed.
 @MainActor
 final class DriveModel: ObservableObject {
     @Published private(set) var hazards: [Threat] = []
     @Published private(set) var cameras: [Threat] = []
     @Published private(set) var lastAnnouncement: Announcement?
+    @Published private(set) var postedLimit: Int?
     @Published private(set) var connected = true
     @Published private(set) var speedKmh: Double = 0
     @Published var muted = false
+
+    @Published var navMode: NavMode = .idle
+    @Published var searchQuery = ""
+    @Published private(set) var searchResults: [PlaceResult] = []
+    @Published private(set) var searching = false
+    @Published private(set) var destination: PlaceResult?
+    @Published private(set) var route: RouteOption?
+    @Published private(set) var routeGeometry: [RoutePoint] = []
+    @Published private(set) var progress: RouteProgress?
+    @Published var selectedThreat: Threat?
+    @Published private(set) var toast: String?
 
     let location = LocationProvider()
 
@@ -20,12 +40,21 @@ final class DriveModel: ObservableObject {
     private var engineState = EngineState()
     private var cancellables = Set<AnyCancellable>()
     private var pollTask: Task<Void, Never>?
+    private var searchTask: Task<Void, Never>?
     private var lastFetchCentre: (lat: Double, lon: Double)?
+    private var lastCar: LocationProvider.CarStateSnapshot?
+
+    /// The maneuver we last spoke, so we announce each turn once, not every tick.
+    private var lastSpokenStep = -1
+    private var lastRerouteAt = Date.distantPast
 
     /// Refetch once the car has moved far enough that the previous window is
     /// running out, rather than on a timer that ignores how fast we are going.
     private let refetchAfterMetres = 4_000.0
     private let pollInterval: UInt64 = 30 * 1_000_000_000
+    private let rerouteCooldown: TimeInterval = 20
+
+    var threats: [Threat] { cameras + hazards }
 
     init() {
         api = RadarApi(
@@ -53,6 +82,7 @@ final class DriveModel: ObservableObject {
 
     func stop() {
         pollTask?.cancel()
+        searchTask?.cancel()
         location.stop()
         voice.release()
     }
@@ -67,7 +97,10 @@ final class DriveModel: ObservableObject {
         }
     }
 
+    // MARK: - The tick
+
     private func onFix(_ snapshot: LocationProvider.CarStateSnapshot) {
+        lastCar = snapshot
         speedKmh = snapshot.speedMps * 3.6
 
         let car = CarState(
@@ -78,9 +111,29 @@ final class DriveModel: ObservableObject {
             stationaryForMs: snapshot.stationaryForMs
         )
 
-        let threats = cameras + hazards
-        let now = Int64(Date().timeIntervalSince1970 * 1000)
+        // Route progress first: a turn instruction is more urgent than a camera
+        // three hundred metres further on, and it also feeds the ETA strip.
+        if navMode == .navigating, routeGeometry.count >= 2 {
+            let steps = route?.legs.flatMap(\.steps) ?? []
+            let current = RouteTracker.progress(
+                geometry: routeGeometry,
+                steps: steps,
+                lat: car.lat,
+                lon: car.lon,
+                totalDurationS: route?.durationS ?? 0
+            )
+            progress = current
 
+            if let current {
+                if current.isOffRoute {
+                    maybeReroute(from: car)
+                } else {
+                    speakManeuverIfDue(current)
+                }
+            }
+        }
+
+        let now = Int64(Date().timeIntervalSince1970 * 1000)
         engineState = AlertEngine.retirePassed(engineState, car: car, threats: threats)
 
         guard let announcement = AlertEngine.evaluate(
@@ -89,15 +142,55 @@ final class DriveModel: ObservableObject {
 
         engineState = AlertEngine.record(engineState, announcement: announcement, now: now)
         lastAnnouncement = announcement
+        postedLimit = threats
+            .first { $0.id == announcement.threatId }
+            .flatMap(AlertEngine.postedLimit)
         if !muted { voice.announce(announcement) }
     }
+
+    /// Speak each turn twice at most: once with warning, once on approach. The
+    /// step index guards the first; the distance band guards the second.
+    private func speakManeuverIfDue(_ progress: RouteProgress) {
+        guard !muted, let instruction = RouteTracker.maneuverPrompt(progress) else { return }
+
+        let far = (200...600).contains(progress.distanceToManeuverM)
+        let near = progress.distanceToManeuverM < 60
+        guard far || near else { return }
+
+        let key = near ? progress.stepIndex * 2 + 1 : progress.stepIndex * 2
+        guard key != lastSpokenStep else { return }
+        lastSpokenStep = key
+        voice.speakNavigation(instruction)
+    }
+
+    private func maybeReroute(from car: CarState) {
+        // A wrong turn produces off-route readings for many ticks in a row.
+        // Without a cooldown that becomes a routing request every second.
+        guard Date().timeIntervalSince(lastRerouteAt) > rerouteCooldown else { return }
+        lastRerouteAt = Date()
+
+        guard let destination else { return }
+        Task {
+            guard let result = try? await api.route(
+                fromLat: car.lat, fromLon: car.lon,
+                toLat: destination.lat, toLon: destination.lon
+            ), let option = result.routes.first else { return }
+
+            lastSpokenStep = -1
+            route = option
+            routeGeometry = Polyline.decode(option.geometry)
+            show(toast: "Rerouting")
+            if !muted { voice.speakNavigation("Rerouting") }
+        }
+    }
+
+    // MARK: - Hazards
 
     private func refreshHazardsIfNeeded() async {
         guard let snapshot = location.car else { return }
 
         if let previous = lastFetchCentre {
             let moved = Geo.distanceM(previous.lat, previous.lon, snapshot.lat, snapshot.lon)
-            // Still well inside the window we already hold: nothing to do.
             if moved < refetchAfterMetres / 2, !hazards.isEmpty { return }
         }
 
@@ -106,10 +199,8 @@ final class DriveModel: ObservableObject {
         let pad = 0.11
         do {
             let collection = try await api.alerts(
-                minLon: snapshot.lon - pad,
-                minLat: snapshot.lat - pad,
-                maxLon: snapshot.lon + pad,
-                maxLat: snapshot.lat + pad
+                minLon: snapshot.lon - pad, minLat: snapshot.lat - pad,
+                maxLon: snapshot.lon + pad, maxLat: snapshot.lat + pad
             )
             hazards = ThreatMapper.fromAlerts(collection)
             lastFetchCentre = (snapshot.lat, snapshot.lon)
@@ -121,23 +212,143 @@ final class DriveModel: ObservableObject {
         }
     }
 
-    // MARK: - Reporting
+    // MARK: - Search and routing
+
+    func openSearch() {
+        searchQuery = ""
+        searchResults = []
+        navMode = .searching
+    }
+
+    func closeSearch() {
+        searchTask?.cancel()
+        searching = false
+        searchResults = []
+        navMode = route != nil ? .navigating : .idle
+    }
+
+    func onSearchQueryChanged(_ query: String) {
+        searchQuery = query
+        searchTask?.cancel()
+
+        guard query.trimmingCharacters(in: .whitespaces).count >= 3 else {
+            searchResults = []
+            searching = false
+            return
+        }
+
+        searchTask = Task { [weak self] in
+            // Debounce: a geocoding request per keystroke is both slow and a
+            // waste of the free tier.
+            try? await Task.sleep(nanoseconds: 320_000_000)
+            guard let self, !Task.isCancelled else { return }
+
+            self.searching = true
+            do {
+                let places = try await self.api.search(
+                    query: query.trimmingCharacters(in: .whitespaces),
+                    nearLat: self.lastCar?.lat,
+                    nearLon: self.lastCar?.lon
+                )
+                guard !Task.isCancelled else { return }
+                self.searchResults = places
+            } catch {
+                self.searchResults = []
+                self.show(toast: "Search unavailable")
+            }
+            self.searching = false
+        }
+    }
+
+    func pickDestination(_ place: PlaceResult) {
+        guard let car = lastCar else {
+            show(toast: "Waiting for a GPS fix")
+            return
+        }
+
+        destination = place
+        searchResults = []
+        navMode = .previewing
+
+        Task {
+            do {
+                let result = try await api.route(
+                    fromLat: car.lat, fromLon: car.lon,
+                    toLat: place.lat, toLon: place.lon
+                )
+                guard let option = result.routes.first else {
+                    navMode = .idle
+                    show(toast: "No route found")
+                    return
+                }
+                route = option
+                routeGeometry = Polyline.decode(option.geometry)
+            } catch {
+                navMode = .idle
+                show(toast: "Could not build a route")
+            }
+        }
+    }
+
+    func startNavigation() {
+        guard route != nil else { return }
+        lastSpokenStep = -1
+        navMode = .navigating
+    }
+
+    func endNavigation() {
+        lastSpokenStep = -1
+        navMode = .idle
+        route = nil
+        routeGeometry = []
+        progress = nil
+        destination = nil
+    }
+
+    // MARK: - Reports
 
     func report(kind: String) async {
-        guard let snapshot = location.car else { return }
-        let request = ReportRequest(
-            kind: kind,
-            lat: snapshot.lat,
-            lon: snapshot.lon,
-            bearing: snapshot.headingDeg
-        )
+        guard let snapshot = lastCar else { return }
         do {
-            _ = try await api.report(request)
+            _ = try await api.report(
+                ReportRequest(
+                    kind: kind, lat: snapshot.lat, lon: snapshot.lon,
+                    bearing: snapshot.headingDeg
+                )
+            )
             // Show it immediately rather than waiting for the next poll: the
             // driver who just tapped it should see it land.
+            lastFetchCentre = nil
             await refreshHazardsIfNeeded()
+            show(toast: "Thanks — reported")
         } catch {
             connected = false
+            show(toast: "Could not report")
+        }
+    }
+
+    /// Confirm or deny somebody else's report. Only community reports can be voted on.
+    func vote(on threat: Threat, confirm: Bool) async {
+        let prefix = "community:"
+        guard threat.id.hasPrefix(prefix) else { return }
+        let reportId = String(threat.id.dropFirst(prefix.count))
+
+        do {
+            try await api.vote(reportId: reportId, confirm: confirm)
+            selectedThreat = nil
+            lastFetchCentre = nil
+            await refreshHazardsIfNeeded()
+            show(toast: confirm ? "Confirmed" : "Marked as gone")
+        } catch {
+            show(toast: "Could not send that")
+        }
+    }
+
+    private func show(toast message: String) {
+        toast = message
+        Task {
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            if toast == message { toast = nil }
         }
     }
 

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The same mark as the iOS icon: a road running to the horizon with something
+  flagged on it up ahead.
+
+  Everything is kept inside the central 72dp of the 108dp canvas, because the
+  launcher mask can crop anything outside it into a different shape on every
+  manufacturer's skin.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Road surface, lighter near the viewer and falling away to the horizon. -->
+    <path android:pathData="M31,90 L77,90 L59,52 L49,52 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="54" android:startY="90"
+                android:endX="54" android:endY="52"
+                android:startColor="#E8EEF6"
+                android:endColor="#6E8BAD" />
+        </aapt:attr>
+    </path>
+
+    <!-- Centre line, crowding towards the horizon to carry the perspective. -->
+    <path android:fillColor="#121A26"
+        android:pathData="M51.4,88 h5.2 v-6 h-5.2 z" />
+    <path android:fillColor="#121A26"
+        android:pathData="M52.0,78 h4.0 v-5 h-4.0 z" />
+    <path android:fillColor="#121A26"
+        android:pathData="M52.5,69 h3.0 v-4 h-3.0 z" />
+    <path android:fillColor="#121A26"
+        android:pathData="M52.9,61 h2.2 v-3 h-2.2 z" />
+
+    <!-- The hazard ahead: a ring with a bright core, above the horizon. -->
+    <path android:fillColor="#F2C94C"
+        android:pathData="M54,20 m-13,0 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0 Z
+                          M54,20 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 Z" />
+    <path android:fillColor="#FFF0BE"
+        android:pathData="M54,20 m-4.5,0 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z" />
+</vector>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="au.radar.core.RouteTrackerFormattingTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-09-01T16:59:02.930Z" hostname="vm" time="0.01">
+  <properties/>
+  <testcase name="a maneuver about to happen drops the distance preamble()" classname="au.radar.core.RouteTrackerFormattingTest" time="0.002"/>
+  <testcase name="a maneuver prompt reads as a sentence()" classname="au.radar.core.RouteTrackerFormattingTest" time="0.001"/>
+  <testcase name="distances read the way an ETA strip does()" classname="au.radar.core.RouteTrackerFormattingTest" time="0.001"/>
+  <testcase name="a route with fewer than two points yields no progress()" classname="au.radar.core.RouteTrackerFormattingTest" time="0.001"/>
+  <testcase name="durations read the way an ETA strip does()" classname="au.radar.core.RouteTrackerFormattingTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

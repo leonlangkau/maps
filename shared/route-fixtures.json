@@ -1,0 +1,180 @@
+{
+  "note": "Shared route-geometry expectations for iOS and Android. Expected values are computed independently in Python, not taken from either implementation. See docs/alert-engine.md for the sibling fixture set.",
+  "polyline6": "~~dr_Agtal_HaxG?_xG?axG?_xG?axG?axG?_xG?axG?_xG?",
+  "expectedPoints": [
+    {
+      "lat": -33.8688,
+      "lon": 151.2093
+    },
+    {
+      "lat": -33.8643034,
+      "lon": 151.2093
+    },
+    {
+      "lat": -33.8598068,
+      "lon": 151.2093
+    },
+    {
+      "lat": -33.8553102,
+      "lon": 151.2093
+    },
+    {
+      "lat": -33.8508136,
+      "lon": 151.2093
+    },
+    {
+      "lat": -33.846317,
+      "lon": 151.2093
+    },
+    {
+      "lat": -33.8418204,
+      "lon": 151.2093
+    },
+    {
+      "lat": -33.8373238,
+      "lon": 151.2093
+    },
+    {
+      "lat": -33.8328272,
+      "lon": 151.2093
+    },
+    {
+      "lat": -33.8283306,
+      "lon": 151.2093
+    }
+  ],
+  "totalDistanceM": 4500.0,
+  "offRouteThresholdM": 50.0,
+  "steps": [
+    {
+      "instruction": "Head north",
+      "distanceM": 1499.999,
+      "durationS": 60.0
+    },
+    {
+      "instruction": "Continue north",
+      "distanceM": 1499.999,
+      "durationS": 60.0
+    },
+    {
+      "instruction": "Arrive",
+      "distanceM": 1499.999,
+      "durationS": 60.0
+    }
+  ],
+  "toleranceM": 2.0,
+  "cases": [
+    {
+      "name": "sitting at the start",
+      "why": "Nothing travelled; the whole route remains.",
+      "lat": -33.8688,
+      "lon": 151.2093,
+      "expect": {
+        "distanceAlongM": 0.0,
+        "distanceRemainingM": 4500.0,
+        "offRouteByM": 0.0,
+        "isOffRoute": false,
+        "stepIndex": 0,
+        "distanceToManeuverM": 1500.0
+      }
+    },
+    {
+      "name": "halfway along the first segment",
+      "why": "Projection must land mid-segment, not snap to a vertex.",
+      "lat": -33.8665517,
+      "lon": 151.2093,
+      "expect": {
+        "distanceAlongM": 250.0,
+        "distanceRemainingM": 4250.0,
+        "offRouteByM": 0.0,
+        "isOffRoute": false,
+        "stepIndex": 0,
+        "distanceToManeuverM": 1250.0
+      }
+    },
+    {
+      "name": "exactly on a vertex",
+      "why": "A vertex is the boundary case for segment search.",
+      "lat": -33.8598068,
+      "lon": 151.2093,
+      "expect": {
+        "distanceAlongM": 1000.0,
+        "distanceRemainingM": 3500.0,
+        "offRouteByM": 0.0,
+        "isOffRoute": false,
+        "stepIndex": 0,
+        "distanceToManeuverM": 500.0
+      }
+    },
+    {
+      "name": "30 metres off the line",
+      "why": "Normal GPS wander on a wide road; still on route.",
+      "lat": -33.8598068,
+      "lon": 151.2096249,
+      "expect": {
+        "distanceAlongM": 1000.0,
+        "distanceRemainingM": 3500.0,
+        "offRouteByM": 30.0,
+        "isOffRoute": false,
+        "stepIndex": 0,
+        "distanceToManeuverM": 500.0
+      }
+    },
+    {
+      "name": "80 metres off the line",
+      "why": "Past the 50 metre threshold: a genuine wrong turn.",
+      "lat": -33.8598068,
+      "lon": 151.2101664,
+      "expect": {
+        "distanceAlongM": 1000.0,
+        "distanceRemainingM": 3500.0,
+        "offRouteByM": 80.0,
+        "isOffRoute": true,
+        "stepIndex": 0,
+        "distanceToManeuverM": 500.0
+      }
+    },
+    {
+      "name": "past the final vertex",
+      "why": "Projection clamps to the route end rather than extrapolating.",
+      "lat": -33.826532,
+      "lon": 151.2093,
+      "expect": {
+        "distanceAlongM": 4500.0,
+        "distanceRemainingM": 0.0,
+        "offRouteByM": 200.0,
+        "isOffRoute": true,
+        "stepIndex": 2,
+        "distanceToManeuverM": 0.0
+      }
+    },
+    {
+      "name": "behind the first vertex",
+      "why": "Clamps to zero rather than reporting negative progress.",
+      "lat": -33.8705986,
+      "lon": 151.2093,
+      "expect": {
+        "distanceAlongM": 0.0,
+        "distanceRemainingM": 4500.0,
+        "offRouteByM": 200.0,
+        "isOffRoute": true,
+        "stepIndex": 0,
+        "distanceToManeuverM": 1500.0
+      }
+    },
+    {
+      "name": "inside the second step",
+      "why": "Step index and distance-to-maneuver come from distance travelled.",
+      "lat": -33.8544109,
+      "lon": 151.2093,
+      "expect": {
+        "distanceAlongM": 1600.0,
+        "distanceRemainingM": 2900.0,
+        "offRouteByM": 0.0,
+        "isOffRoute": false,
+        "stepIndex": 1,
+        "distanceToManeuverM": 1400.0
+      }
+    }
+  ]
+}

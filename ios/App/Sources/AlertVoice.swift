@@ -62,6 +62,12 @@ final class AlertVoice {
         sessionActive = true
     }
 
+    /// Turn-by-turn instructions, which bypass the alert engine's suppression:
+    /// a maneuver is timed to the road, not rationed like a hazard warning.
+    func speakNavigation(_ text: String) {
+        speak(text)
+    }
+
     /// Hand the audio session back when the drive ends, so music un-ducks.
     func release() {
         guard sessionActive else { return }

@@ -6,8 +6,7 @@ struct RadarAUApp: App {
         WindowGroup {
             DriveView()
                 // A driving app that dims and locks mid-trip is useless in a
-                // cradle, and the dark map is what you want at night anyway.
-                .preferredColorScheme(.dark)
+                // cradle. DriveView carries the dark scheme itself.
                 .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
                 .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
         }

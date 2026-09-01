@@ -61,6 +61,14 @@ class AlertVoice(context: Context) {
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, text.hashCode().toString())
     }
 
+    /**
+     * Turn-by-turn instructions, which bypass the alert engine's suppression:
+     * a maneuver is timed to the road, not rationed like a hazard warning.
+     */
+    fun speakNavigation(text: String) {
+        speak(text)
+    }
+
     fun release() {
         tts.stop()
         tts.shutdown()

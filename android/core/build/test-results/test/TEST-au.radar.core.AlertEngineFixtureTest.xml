@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="au.radar.core.AlertEngineFixtureTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-09-01T16:37:08.328Z" hostname="vm" time="0.242">
+<testsuite name="au.radar.core.AlertEngineFixtureTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-09-01T16:59:02.525Z" hostname="vm" time="0.194">
   <properties/>
-  <testcase name="the fixture file covers both outcomes()" classname="au.radar.core.AlertEngineFixtureTest" time="0.175"/>
-  <testcase name="every shared fixture behaves as specified()" classname="au.radar.core.AlertEngineFixtureTest" time="0.065"/>
+  <testcase name="the fixture file covers both outcomes()" classname="au.radar.core.AlertEngineFixtureTest" time="0.127"/>
+  <testcase name="every shared fixture behaves as specified()" classname="au.radar.core.AlertEngineFixtureTest" time="0.064"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

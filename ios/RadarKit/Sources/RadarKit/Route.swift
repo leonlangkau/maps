@@ -1,0 +1,236 @@
+import Foundation
+
+public struct RoutePoint: Codable, Equatable, Sendable {
+    public let lat: Double
+    public let lon: Double
+
+    public init(lat: Double, lon: Double) {
+        self.lat = lat
+        self.lon = lon
+    }
+}
+
+/// Google's encoded-polyline format, which is what both Mapbox Directions and
+/// Valhalla return. Precision 6 is the default here because that is what the
+/// Worker asks Mapbox for; precision 5 is the older convention and still turns
+/// up in third-party data.
+public enum Polyline {
+
+    public static func decode(_ encoded: String, precision: Int = 6) -> [RoutePoint] {
+        guard !encoded.isEmpty else { return [] }
+
+        let factor = pow(10.0, Double(precision))
+        let characters = Array(encoded.unicodeScalars)
+        var points: [RoutePoint] = []
+        points.reserveCapacity(characters.count / 4)
+
+        var index = 0
+        var lat = 0
+        var lon = 0
+
+        while index < characters.count {
+            guard let dLat = readVarint(characters, from: index) else { break }
+            index = dLat.next
+            lat += dLat.delta
+
+            guard let dLon = readVarint(characters, from: index) else { break }
+            index = dLon.next
+            lon += dLon.delta
+
+            points.append(RoutePoint(lat: Double(lat) / factor, lon: Double(lon) / factor))
+        }
+        return points
+    }
+
+    /// Returns the decoded delta and the next index, or nil on a truncated string.
+    private static func readVarint(
+        _ characters: [Unicode.Scalar],
+        from start: Int
+    ) -> (delta: Int, next: Int)? {
+        var index = start
+        var shift = 0
+        var result = 0
+        var byte = 0
+
+        repeat {
+            guard index < characters.count else { return nil }
+            byte = Int(characters[index].value) - 63
+            index += 1
+            result |= (byte & 0x1f) << shift
+            shift += 5
+        } while byte >= 0x20
+
+        // The low bit is the sign, inverted for negatives.
+        let delta = (result & 1) != 0 ? ~(result >> 1) : (result >> 1)
+        return (delta, index)
+    }
+}
+
+/// Where the car is along the route, and whether it is still on it.
+public struct RouteProgress: Sendable {
+    /// The position snapped onto the route line.
+    public let snappedLat: Double
+    public let snappedLon: Double
+    public let distanceAlongM: Double
+    public let distanceRemainingM: Double
+    public let durationRemainingS: Double
+    /// How far the car is from the line. Large values mean a wrong turn.
+    public let offRouteByM: Double
+    public let isOffRoute: Bool
+    public let stepIndex: Int
+    public let distanceToManeuverM: Double
+    public let currentStep: RouteStep?
+    public let nextStep: RouteStep?
+}
+
+/// Tracks a car against a route.
+///
+/// Every tick projects the car onto every segment and takes the nearest. A
+/// windowed search around the previous position would be cheaper, but a full
+/// scan is a few thousand floating-point operations once a second — nothing on
+/// a phone — and it handles the cases a window gets wrong: a U-turn, a route
+/// that doubles back on itself, or a GPS fix that jumps after a tunnel.
+public enum RouteTracker {
+
+    /// Beyond this from the line, treat it as a wrong turn rather than GPS noise.
+    public static let offRouteThresholdM = 50.0
+
+    private static let metresPerDegree = 111_194.926
+
+    public static func progress(
+        geometry: [RoutePoint],
+        steps: [RouteStep],
+        lat: Double,
+        lon: Double,
+        totalDurationS: Double = 0
+    ) -> RouteProgress? {
+        guard geometry.count >= 2 else { return nil }
+
+        // Cumulative distance to each vertex, measured the same way the route's
+        // own distances are: great-circle between consecutive points.
+        var cumulative = [Double](repeating: 0, count: geometry.count)
+        for i in 1..<geometry.count {
+            let a = geometry[i - 1]
+            let b = geometry[i]
+            cumulative[i] = cumulative[i - 1] + Geo.distanceM(a.lat, a.lon, b.lat, b.lon)
+        }
+        let total = cumulative[geometry.count - 1]
+
+        var bestDistance = Double.greatestFiniteMagnitude
+        var bestAlong = 0.0
+        var bestLat = geometry[0].lat
+        var bestLon = geometry[0].lon
+
+        for i in 0..<(geometry.count - 1) {
+            let projection = projectOntoSegment(
+                lat: lat, lon: lon, a: geometry[i], b: geometry[i + 1]
+            )
+            if projection.distanceM < bestDistance {
+                bestDistance = projection.distanceM
+                bestLat = projection.lat
+                bestLon = projection.lon
+                bestAlong = cumulative[i] + projection.t * (cumulative[i + 1] - cumulative[i])
+            }
+        }
+
+        let along = min(max(bestAlong, 0), total)
+        let remaining = max(total - along, 0)
+
+        // Walk the step distances to find which one we are inside.
+        var stepIndex = 0
+        var stepEnd = 0.0
+        for (i, step) in steps.enumerated() {
+            stepEnd += step.distanceM
+            stepIndex = i
+            if along < stepEnd { break }
+        }
+        let toManeuver = max(stepEnd - along, 0)
+
+        return RouteProgress(
+            snappedLat: bestLat,
+            snappedLon: bestLon,
+            distanceAlongM: along,
+            distanceRemainingM: remaining,
+            // Assume an even pace across the route: good enough for an ETA that
+            // is refreshed every time the route is refetched.
+            durationRemainingS: total > 0 ? totalDurationS * (remaining / total) : 0,
+            offRouteByM: bestDistance,
+            isOffRoute: bestDistance > offRouteThresholdM,
+            stepIndex: stepIndex,
+            distanceToManeuverM: toManeuver,
+            currentStep: stepIndex < steps.count ? steps[stepIndex] : nil,
+            nextStep: stepIndex + 1 < steps.count ? steps[stepIndex + 1] : nil
+        )
+    }
+
+    private struct Projection {
+        let lat: Double
+        let lon: Double
+        let t: Double
+        let distanceM: Double
+    }
+
+    /// Projects a point onto one segment using a local flat-earth approximation.
+    ///
+    /// Over a segment of a few hundred metres the curvature error is far below
+    /// GPS accuracy, and it turns the projection into simple two-dimensional
+    /// vector arithmetic instead of spherical trigonometry.
+    private static func projectOntoSegment(
+        lat: Double, lon: Double, a: RoutePoint, b: RoutePoint
+    ) -> Projection {
+        let cosLat = cos(a.lat * .pi / 180)
+
+        let bx = (b.lon - a.lon) * metresPerDegree * cosLat
+        let by = (b.lat - a.lat) * metresPerDegree
+        let px = (lon - a.lon) * metresPerDegree * cosLat
+        let py = (lat - a.lat) * metresPerDegree
+
+        let lengthSquared = bx * bx + by * by
+
+        // A zero-length segment (duplicate vertices) degenerates to its endpoint.
+        let t: Double
+        if lengthSquared < 1e-9 {
+            t = 0
+        } else {
+            t = min(max((px * bx + py * by) / lengthSquared, 0), 1)
+        }
+
+        let closestX = t * bx
+        let closestY = t * by
+        let distance = sqrt((px - closestX) * (px - closestX) + (py - closestY) * (py - closestY))
+
+        return Projection(
+            lat: a.lat + (closestY / metresPerDegree),
+            lon: a.lon + (closestX / (metresPerDegree * cosLat)),
+            t: t,
+            distanceM: distance
+        )
+    }
+
+    /// "In 400 metres, turn left" — the phrasing a person expects to hear.
+    public static func maneuverPrompt(_ progress: RouteProgress) -> String? {
+        guard let step = progress.currentStep else { return nil }
+        let instruction = step.instruction
+        guard !instruction.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+
+        if progress.distanceToManeuverM < 30 { return instruction }
+        let lowered = instruction.prefix(1).lowercased() + instruction.dropFirst()
+        return "In \(AlertEngine.spokenDistance(progress.distanceToManeuverM)), \(lowered)"
+    }
+
+    /// Formats a remaining duration the way an ETA strip reads.
+    public static func formatDuration(_ seconds: Double) -> String {
+        let totalMinutes = Int(seconds / 60)
+        if totalMinutes < 60 { return "\(totalMinutes) min" }
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        return minutes == 0 ? "\(hours) hr" : "\(hours) hr \(minutes) min"
+    }
+
+    /// Formats a remaining distance for the ETA strip.
+    public static func formatDistance(_ metres: Double) -> String {
+        if metres < 1_000 { return "\(Int(metres / 100) * 100) m" }
+        let km = metres / 1_000
+        return km < 10 ? String(format: "%.1f km", km) : "\(Int(km)) km"
+    }
+}
