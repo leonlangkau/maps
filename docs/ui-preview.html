@@ -359,6 +359,64 @@
   .route-summary .big { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; }
   .route-summary .small { font-size: 12px; color: rgba(255, 255, 255, 0.65); }
 
+  /* Flash: the pulse is an edge vignette, never a full-screen white-out. */
+  .flash-vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    background: radial-gradient(
+      circle at 50% 45%,
+      transparent 42%,
+      rgba(235, 87, 87, 0.62) 100%);
+  }
+
+  .set-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 0; }
+  .set-row .set-name { font-size: 12px; font-weight: 500; }
+  .set-row .set-sub { font-size: 9.5px; color: rgba(255, 255, 255, 0.5); }
+  .set-group {
+    font-size: 8.5px; letter-spacing: 0.13em; text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4); padding-top: 12px; padding-bottom: 2px;
+    font-weight: 600;
+  }
+  .switch {
+    width: 34px; height: 20px; border-radius: 999px; flex: none;
+    background: rgba(255, 255, 255, 0.16); position: relative;
+  }
+  .switch.on { background: #2F80ED; }
+  .switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 50%; background: #fff;
+  }
+  .switch.on::after { left: 17px; }
+  .chips { display: flex; gap: 6px; padding-bottom: 6px; }
+  .chip-sm {
+    font-size: 9px; padding: 4px 9px; border-radius: 999px;
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .chip-sm.on { color: #fff; }
+  .track { height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.16); position: relative; margin: 9px 0 4px; }
+  .track i { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: #2F80ED; }
+  .track b {
+    position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%;
+    background: #4AA8FF; transform: translate(-50%, -50%);
+  }
+  .slider-label { display: flex; justify-content: space-between; font-size: 9.5px; color: rgba(255, 255, 255, 0.62); }
+
+  /* ---- Diagram ---- */
+  figure.diagram { margin: 0; display: flex; flex-direction: column; gap: 1rem; }
+  figure.diagram svg { max-width: 100%; height: auto; display: block; }
+  figure.diagram figcaption { font-size: 0.9rem; color: var(--ink-soft); max-width: var(--measure); }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem;
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-soft);
+  }
+  .legend span { display: flex; align-items: center; gap: 0.45rem; }
+  .legend .key { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+  .legend .key.warned { background: var(--route); }
+  .legend .key.silent { border: 1.5px solid var(--ink-faint); }
+
   /* ---- Comparison ---- */
   .compare {
     display: grid;
@@ -467,7 +525,7 @@
     <div class="meta-strip">
       <span><b>Map</b> MapLibre + self-hosted tiles</span>
       <span><b>Backend</b> Cloudflare Workers</span>
-      <span><b>Tested</b> 103 passing</span>
+      <span><b>Tested</b> 107 passing</span>
       <span><b>App shells</b> not yet compiled</span>
     </div>
   </header>
@@ -649,12 +707,200 @@
         </figcaption>
       </figure>
 
+
+      <!-- 7. Police flash -->
+      <figure class="screen">
+        <div class="phone"><div class="phone-screen" data-map>
+          <div class="chrome">
+            <div class="glass capsule pill">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+              Where to?
+            </div>
+            <div class="glass banner tint-danger">
+              <span class="dot" style="background:#FF6B6B;color:#FF6B6B"></span>
+              Police reported, 1.4&nbsp;kilometres
+            </div>
+            <div class="spacer"></div>
+            <div class="bottom-row">
+              <div class="speed">
+                <div class="glass readout"><div class="value">98</div><div class="unit">km/h</div></div>
+              </div>
+              <div class="controls">
+                <div class="glass ctl md"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg></div>
+                <div class="glass ctl lg tint-route"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+              </div>
+            </div>
+          </div>
+          <div class="flash-vignette"></div>
+        </div></div>
+        <figcaption>
+          <span class="name">Police, with the flash</span>
+          <span class="note">1.4&nbsp;km because they are on this road. The pulse hits the edges, not the middle, and keeps working when the app is muted.</span>
+        </figcaption>
+      </figure>
+
+      <!-- 8. Settings -->
+      <figure class="screen">
+        <div class="phone"><div class="phone-screen" data-map>
+          <div class="chrome" style="opacity:.35"></div>
+          <div class="scrim"></div>
+          <div class="glass sheet" style="top:8px">
+            <h4>Alerts</h4>
+            <div class="set-group">Overall</div>
+            <div class="set-row">
+              <div><div class="set-name">Spoken warnings</div><div class="set-sub">Off for tones only</div></div>
+              <div class="switch on"></div>
+            </div>
+            <div class="set-row">
+              <div><div class="set-name">Flash the screen</div><div class="set-sub">Keeps working when muted</div></div>
+              <div class="switch on"></div>
+            </div>
+            <div class="set-group">Crowd reports</div>
+            <div class="set-row">
+              <div class="set-name">Police</div>
+              <div class="switch on"></div>
+            </div>
+            <div class="chips">
+              <div class="glass capsule chip-sm on tint-route">Voice</div>
+              <div class="glass capsule chip-sm on tint-route">Flash</div>
+            </div>
+            <div class="slider-label"><span>Warn me</span><span>45 s ahead</span></div>
+            <div class="track"><i style="width:47%"></i><b style="left:47%"></b></div>
+            <div class="slider-label"><span>Or anywhere within</span><span>500 m</span></div>
+            <div class="track"><i style="width:29%"></i><b style="left:29%"></b></div>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="name">Settings</span>
+          <span class="note">Every kind has the same four questions: do I want it, spoken or a tone, does it flash, and how early. Police answer differently from roadworks.</span>
+        </figcaption>
+      </figure>
     </div>
   </section>
 
   <section>
     <div class="section-head">
-      <p class="eyebrow">02 — Glass, twice</p>
+      <p class="eyebrow">02 — The decision</p>
+      <h2>Is it on my road, or just near me?</h2>
+      <p>
+        Everything turns on this. A police car a kilometre ahead <em>on the road you
+        are driving</em> is worth knowing about now. One a kilometre away on some
+        other road is not — you may never go near it. Treating them the same either
+        floods you with irrelevance or warns you far too late about the one that counts.
+      </p>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 680 520" role="img"
+           aria-label="A top-down view of a car heading north. A threat inside the narrow corridor down its own road is warned about at two kilometres; one on a parallel road inside the forward cone waits until 1250 metres; one beside the car inside the 500 metre radius is warned about regardless of direction; one further to the side and one behind are silent.">
+        <defs>
+          <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- Roads -->
+        <rect x="300" y="0" width="80" height="520" fill="currentColor" opacity="0.09"/>
+        <rect x="400" y="0" width="66" height="520" fill="currentColor" opacity="0.06"/>
+        <rect x="0" y="300" width="680" height="52" fill="currentColor" opacity="0.06"/>
+
+        <!-- The radius: direction stops mattering inside it -->
+        <circle cx="340" cy="420" r="110" fill="none" stroke="currentColor"
+                stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="5 5"/>
+        <text x="340" y="300" text-anchor="middle" font-size="11" fill="currentColor"
+              opacity="0.62">radius, 500 m</text>
+
+        <!-- The forward cone, narrowed by speed -->
+        <path d="M340 420 L153 20" stroke="currentColor" stroke-opacity="0.32"
+              stroke-width="1.5" stroke-dasharray="4 6" fill="none"/>
+        <path d="M340 420 L527 20" stroke="currentColor" stroke-opacity="0.32"
+              stroke-width="1.5" stroke-dasharray="4 6" fill="none"/>
+        <text x="527" y="38" font-size="11" fill="currentColor" opacity="0.62">cone, 25°</text>
+
+        <!-- The corridor: my road -->
+        <path d="M318 420 L288 20 L392 20 L362 420 Z"
+              fill="var(--route)" opacity="0.16"/>
+        <text x="288" y="14" font-size="11" fill="var(--route)">corridor, 40–90 m</text>
+
+        <!-- The car -->
+        <path d="M340 396 L352 424 L340 417 L328 424 Z" fill="var(--route)"/>
+        <line x1="340" y1="396" x2="340" y2="352" stroke="var(--route)"
+              stroke-width="2" marker-end="url(#arrowhead)" color="var(--route)"/>
+
+        <!-- On my road -->
+        <circle cx="340" cy="70" r="8" fill="var(--route)"/>
+        <line x1="352" y1="70" x2="470" y2="70" stroke="currentColor" stroke-opacity="0.35"/>
+        <text x="478" y="66" font-size="12.5" fill="currentColor">On my road</text>
+        <text x="478" y="83" font-size="11" fill="currentColor" opacity="0.6">warned at 2 km</text>
+
+        <!-- Parallel road, still inside the cone -->
+        <circle cx="433" cy="170" r="8" fill="var(--route)"/>
+        <line x1="445" y1="170" x2="500" y2="170" stroke="currentColor" stroke-opacity="0.35"/>
+        <text x="508" y="166" font-size="12.5" fill="currentColor">Road in front</text>
+        <text x="508" y="183" font-size="11" fill="currentColor" opacity="0.6">waits until 1250 m</text>
+
+        <!-- Beside me, inside the radius -->
+        <circle cx="280" cy="340" r="8" fill="var(--route)"/>
+        <line x1="268" y1="340" x2="196" y2="340" stroke="currentColor" stroke-opacity="0.35"/>
+        <text x="188" y="336" font-size="12.5" text-anchor="end" fill="currentColor">Beside me</text>
+        <text x="188" y="353" font-size="11" text-anchor="end" fill="currentColor" opacity="0.6">radius catches it</text>
+
+        <!-- Too far to the side -->
+        <circle cx="96" cy="200" r="8" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-opacity="0.55"/>
+        <text x="96" y="180" font-size="12.5" text-anchor="middle" fill="currentColor"
+              opacity="0.72">Too far aside</text>
+        <text x="96" y="164" font-size="11" text-anchor="middle" fill="currentColor"
+              opacity="0.5">silent</text>
+
+        <!-- Behind -->
+        <circle cx="340" cy="484" r="8" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-opacity="0.55"/>
+        <line x1="352" y1="484" x2="430" y2="484" stroke="currentColor" stroke-opacity="0.3"/>
+        <text x="438" y="480" font-size="12.5" fill="currentColor" opacity="0.72">Behind</text>
+        <text x="438" y="497" font-size="11" fill="currentColor" opacity="0.5">already passed</text>
+      </svg>
+
+      <div class="legend">
+        <span><i class="key warned"></i> warned about</span>
+        <span><i class="key silent"></i> stays silent</span>
+      </div>
+
+      <figcaption>
+        The same police car, five places. Only its position relative to your road
+        changes what the app does — and the two on the right of the picture would be
+        indistinguishable to anything that just measured straight-line distance.
+      </figcaption>
+    </figure>
+
+    <dl class="spec" style="margin-top:2.5rem">
+      <div class="spec-row">
+        <dt>On the route</dt>
+        <dd>Best answer of the four, and the only one that survives a bend. Within 45 m of the route line, measured <em>along the road</em> — so a police car around a sweeping curve, 60° off your compass heading, is still correctly a kilometre up your own road.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>The corridor</dt>
+        <dd>Without a route: 40 m either side alongside you, widening by 2 cm per metre to absorb heading noise, capped at 90 m before it can reach the next street. Australian blocks put parallel roads further apart than that, which is what makes the cap work.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>The cone</dt>
+        <dd>In front, but off the corridor — a service road, a slip lane, a bend the corridor could not follow. Gets the ordinary lead rather than the long one.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>The radius</dt>
+        <dd>Where geometry gives up. Inside it, direction stops mattering: an intersection you are approaching sits at nearly 90°, and something just around a corner is off in an arbitrary direction.</dd>
+      </div>
+      <div class="spec-row">
+        <dt>Sideways is radius-only</dt>
+        <dd>A long lead time never reaches sideways. Otherwise going fast would warn you about a police car half a kilometre off your route — but your speed says nothing about how soon you reach something beside you.</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <p class="eyebrow">03 — Glass, twice</p>
       <h2>The same look, built two different ways</h2>
       <p>
         On iOS this is Liquid Glass proper: <code>glassEffect</code> inside a
@@ -732,7 +978,7 @@
 
   <section>
     <div class="section-head">
-      <p class="eyebrow">03 — Behaviour</p>
+      <p class="eyebrow">04 — Behaviour</p>
       <h2>What the interface does when you are not looking at it</h2>
       <p>
         Most of the design is in what it refuses to do. An app that talks constantly is
@@ -783,7 +1029,7 @@
 
   <section>
     <div class="section-head">
-      <p class="eyebrow">04 — Where this actually stands</p>
+      <p class="eyebrow">05 — Where this actually stands</p>
       <h2>What is proven and what is not</h2>
     </div>
 
@@ -794,9 +1040,9 @@
         <span class="body">Feed merging, camera ingest, caching, the Waze circuit breaker, and the cron pruning that had a table-wiping bug in it.</span>
       </div>
       <div class="status-card">
-        <span class="label ok">Tested — 42 passing</span>
+        <span class="label ok">Tested — 46 passing</span>
         <span class="title">Alert &amp; route engine</span>
-        <span class="body">Every rule above, plus polyline decoding and route tracking, pinned to shared fixtures whose expected values were computed independently.</span>
+        <span class="body">Every rule above, pinned to 35 shared fixtures whose expectations come from a third implementation of the spec — so a bug both engines share still fails.</span>
       </div>
       <div class="status-card">
         <span class="label warn">Written, never compiled</span>

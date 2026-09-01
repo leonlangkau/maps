@@ -9,8 +9,8 @@ flooding, roadworks — and otherwise stays quiet.
 | Piece | State |
 |---|---|
 | `worker/` — Cloudflare Worker backend | Complete, 61 tests passing |
-| `android/core/` — alert, route and API engines (pure Kotlin) | Complete, 42 tests passing |
-| `shared/` — cross-platform engine fixtures | 30 cases |
+| `android/core/` — alert, route and API engines (pure Kotlin) | Complete, 46 tests passing |
+| `shared/` — cross-platform engine fixtures | 43 cases |
 | `ios/RadarKit/` — the same engines and client in Swift | Written, not yet compiled |
 | `ios/App/` — SwiftUI app | Written, needs a Mac and Xcode |
 | `android/app/` — Compose app | Written, needs the Android SDK |
@@ -42,8 +42,9 @@ implementation is already written for the day that arrangement stops suiting.
 ## Reading order
 
 1. **[docs/architecture.md](docs/architecture.md)** — how the pieces fit and why.
-2. **[docs/alert-engine.md](docs/alert-engine.md)** — the rules for when to speak.
-   This is the heart of the app.
+2. **[docs/alert-engine.md](docs/alert-engine.md)** — how it decides whether
+   something is on your road, in front of you, beside you, or not worth
+   mentioning. This is the heart of the app.
 3. **[docs/cloudflare-setup.md](docs/cloudflare-setup.md)** — standing the backend
    up, through the dashboard.
 4. **[docs/data-sources.md](docs/data-sources.md)** — every feed, what it costs,
