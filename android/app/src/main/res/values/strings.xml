@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Radar AU</string>
+    <string name="drive_channel_name">Driving</string>
+    <string name="drive_channel_description">Keeps camera and hazard warnings running while you drive.</string>
+    <string name="drive_notification_title">Watching the road ahead</string>
+    <string name="drive_notification_text">Warning about cameras and hazards.</string>
+    <string name="location_rationale">Radar AU needs your location to warn you about speed cameras and hazards on the road ahead of you.</string>
+</resources>

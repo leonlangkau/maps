@@ -1,0 +1,54 @@
+# Generated with XcodeGen so the project file is not a merge-conflict magnet:
+#   brew install xcodegen && cd ios/App && xcodegen generate
+name: RadarAU
+options:
+  bundleIdPrefix: au.radar
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+packages:
+  RadarKit:
+    path: ../RadarKit
+  MapLibre:
+    url: https://github.com/maplibre/maplibre-gl-native-distribution
+    from: 6.5.0
+
+targets:
+  RadarAU:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    dependencies:
+      - package: RadarKit
+      - package: MapLibre
+        product: MapLibre
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: au.radar.app
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Radar AU
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # Location is the whole point of the app, so the strings say plainly
+        # what it is for. Vague purpose strings get apps rejected.
+        NSLocationWhenInUseUsageDescription: >-
+          Radar AU needs your location to warn you about speed cameras and
+          hazards on the road ahead of you.
+        NSLocationAlwaysAndWhenInUseUsageDescription: >-
+          Radar AU needs your location while driving, including when your screen
+          is off, so it can keep warning you about cameras and hazards ahead.
+        UIBackgroundModes:
+          - location
+          - audio
