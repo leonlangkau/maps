@@ -1,0 +1,38 @@
+name = "radar-au"
+main = "src/index.ts"
+compatibility_date = "2025-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Feed polling (gov + optional Waze) and the nightly camera dataset rebuild.
+[triggers]
+crons = ["*/2 * * * *", "17 16 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "radar-au"
+database_id = "PASTE_FROM_DASHBOARD"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "PASTE_FROM_DASHBOARD"
+
+[[r2_buckets]]
+binding = "TILES"
+bucket_name = "radar-au-tiles"
+
+[vars]
+# Waze layer. Off by default: turning it on polls an unofficial endpoint.
+# See docs/waze-layer.md before enabling.
+WAZE_ENABLED = "false"
+# Comma-separated state codes to poll. Trim this to the states you drive in.
+ACTIVE_STATES = "NSW,QLD,VIC,WA"
+# Basemap object key inside the TILES bucket.
+PMTILES_KEY = "australia.pmtiles"
+
+# Secrets (set in dashboard -> Workers -> radar-au -> Settings -> Variables, "Encrypt"):
+#   APP_TOKEN        shared bearer token the apps send
+#   MAPBOX_TOKEN     Mapbox secret token for Directions + Geocoding (never shipped in the app)
+#   NSW_API_KEY      opendata.transport.nsw.gov.au
+#   QLD_API_KEY      qldtraffic.qld.gov.au
+#   VIC_API_KEY      data-exchange.vicroads.vic.gov.au (request via email)
+#   TOMTOM_API_KEY   optional, live congestion flow

@@ -1,0 +1,17 @@
+node_modules/
+.wrangler/
+dist/
+*.log
+
+# iOS
+ios/build/
+ios/DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+.idea/
