@@ -1,4 +1,4 @@
-import layers from 'protomaps-themes-base';
+import { layers, namedTheme } from 'protomaps-themes-base';
 import { json, problem } from '../lib/http';
 import type { Env } from '../lib/types';
 
@@ -35,7 +35,7 @@ export async function handleStyle(request: Request, env: Env): Promise<Response>
           '<a href="https://protomaps.com">Protomaps</a> © <a href="https://openstreetmap.org">OpenStreetMap</a>',
       },
     },
-    layers: layers('protomaps', requested, 'en'),
+    layers: layers('protomaps', namedTheme(requested), { lang: 'en' }),
   };
 
   return json(style, {

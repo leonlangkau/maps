@@ -121,6 +121,7 @@ async function fetchBox(env: Env, box: BBox, now: number): Promise<Alert[]> {
 export const tomtomSource: Source = {
   id: 'tomtom',
   label: 'TomTom Traffic incidents',
+  bboxScoped: true,
   enabled: (env) => Boolean(env.TOMTOM_API_KEY),
   async fetch(env, now, regions) {
     const boxes = new Map<string, BBox>();

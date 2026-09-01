@@ -142,23 +142,21 @@ export async function sweepExpired(env: Env, now: number): Promise<void> {
   ]);
 }
 
-/** Remove rows a source no longer lists, so cleared incidents disappear. */
+/**
+ * Remove rows a source no longer lists, so a cleared crash disappears promptly
+ * instead of lingering for its full TTL.
+ *
+ * Every row re-asserted in this run carries `updated_at == runStartedAt`, so
+ * anything older was not in the feed this time and has cleared. Comparing on
+ * the timestamp avoids building a NOT IN list of every live incident.
+ */
 export async function pruneSource(
   env: Env,
   source: SourceId,
-  keepIds: string[],
-  now: number,
+  runStartedAt: number,
 ): Promise<void> {
-  if (keepIds.length === 0) {
-    await env.DB.prepare('DELETE FROM alerts WHERE source = ?').bind(source).run();
-    return;
-  }
-  // Anything from this source not re-asserted in this run is stale. Compare on
-  // updated_at rather than building a huge NOT IN list.
-  await env.DB.prepare(
-    'DELETE FROM alerts WHERE source = ? AND updated_at < ?',
-  )
-    .bind(source, now)
+  await env.DB.prepare('DELETE FROM alerts WHERE source = ? AND updated_at < ?')
+    .bind(source, runStartedAt)
     .run();
 }
 

@@ -4,6 +4,12 @@ export interface Source {
   id: SourceId;
   /** Human name for the /v1/health readout. */
   label: string;
+  /**
+   * True when this source is queried per bounding box rather than statewide.
+   * Such a source returning nothing means "nobody was driving there", not "the
+   * road is clear", so its rows must expire on their TTL rather than be pruned.
+   */
+  bboxScoped?: boolean;
   /** False when a required key is missing or the state is not in ACTIVE_STATES. */
   enabled(env: Env): boolean;
   /**

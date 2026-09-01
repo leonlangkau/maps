@@ -153,6 +153,7 @@ async function fetchBox(box: BBox, now: number): Promise<Alert[]> {
 export const wazeSource: Source = {
   id: 'waze',
   label: 'Waze live map (unofficial)',
+  bboxScoped: true,
   enabled: (env) => env.WAZE_ENABLED === 'true',
   async fetch(env, now, regions) {
     const blockedUntil = Number((await env.CACHE.get(BREAKER_KEY)) ?? 0);

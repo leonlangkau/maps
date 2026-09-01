@@ -29,8 +29,16 @@ export async function pollFeeds(env: Env, now: number): Promise<void> {
       try {
         const alerts = await source.fetch(env, now, regions);
         await upsertAlerts(env, alerts);
-        // Anything from this source not re-asserted just now has cleared.
-        await pruneSource(env, source.id, [], now);
+
+        // A statewide feed lists everything that is live, so whatever it did not
+        // re-assert has cleared and should go now rather than linger for its
+        // full TTL. A bbox-scoped source cannot support that inference: it
+        // returns nothing for an area simply because nobody was driving there,
+        // which is why those rows are left to expire on their own.
+        if (!source.bboxScoped) {
+          await pruneSource(env, source.id, now);
+        }
+
         await recordSourceStatus(env, source.id, true, alerts.length, null, now);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
