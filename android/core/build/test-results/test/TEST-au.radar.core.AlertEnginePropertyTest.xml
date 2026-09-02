@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="au.radar.core.AlertEnginePropertyTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-01T18:11:34.080Z" hostname="vm" time="0.295">
+<testsuite name="au.radar.core.AlertEnginePropertyTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-02T08:15:40.730Z" hostname="vm" time="0.157">
   <properties/>
-  <testcase name="nothing behind the car is ever announced()" classname="au.radar.core.AlertEnginePropertyTest" time="0.04"/>
-  <testcase name="being on my road never warns later than being merely in front()" classname="au.radar.core.AlertEnginePropertyTest" time="0.035"/>
-  <testcase name="a switched-off kind is never announced()" classname="au.radar.core.AlertEnginePropertyTest" time="0.021"/>
-  <testcase name="a cooled-down or retired threat is never the one chosen()" classname="au.radar.core.AlertEnginePropertyTest" time="0.028"/>
-  <testcase name="the same inputs always give the same answer()" classname="au.radar.core.AlertEnginePropertyTest" time="0.034"/>
-  <testcase name="the flash switch changes the flag and nothing else()" classname="au.radar.core.AlertEnginePropertyTest" time="0.057"/>
-  <testcase name="an announced threat is always inside a range the settings allow()" classname="au.radar.core.AlertEnginePropertyTest" time="0.026"/>
-  <testcase name="getting closer never turns a warning off()" classname="au.radar.core.AlertEnginePropertyTest" time="0.045"/>
+  <testcase name="nothing behind the car is ever announced()" classname="au.radar.core.AlertEnginePropertyTest" time="0.029"/>
+  <testcase name="being on my road never warns later than being merely in front()" classname="au.radar.core.AlertEnginePropertyTest" time="0.019"/>
+  <testcase name="a switched-off kind is never announced()" classname="au.radar.core.AlertEnginePropertyTest" time="0.012"/>
+  <testcase name="a cooled-down or retired threat is never the one chosen()" classname="au.radar.core.AlertEnginePropertyTest" time="0.005"/>
+  <testcase name="the same inputs always give the same answer()" classname="au.radar.core.AlertEnginePropertyTest" time="0.008"/>
+  <testcase name="the flash switch changes the flag and nothing else()" classname="au.radar.core.AlertEnginePropertyTest" time="0.033"/>
+  <testcase name="an announced threat is always inside a range the settings allow()" classname="au.radar.core.AlertEnginePropertyTest" time="0.016"/>
+  <testcase name="getting closer never turns a warning off()" classname="au.radar.core.AlertEnginePropertyTest" time="0.031"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

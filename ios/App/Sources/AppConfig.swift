@@ -7,14 +7,35 @@ import Foundation
 /// it is not a defence against anyone who has the app. If this ever goes wider
 /// than friends, replace it with real per-user credentials before it ships.
 enum AppConfig {
-    /// Set to your deployed Worker, e.g. https://radar-au.<subdomain>.workers.dev
-    static let baseUrl = Bundle.main.object(forInfoDictionaryKey: "RadarBaseUrl") as? String
-        ?? ProcessInfo.processInfo.environment["RADAR_BASE_URL"]
+    /// Set in ios/App/Local.xcconfig, which the build folds into Info.plist.
+    /// Falls back to the environment for a quick run from Xcode.
+    static let baseUrl = plist("RadarBaseUrl")
+        ?? env("RADAR_BASE_URL")
         ?? "https://radar-au.example.workers.dev"
 
-    static let appToken = Bundle.main.object(forInfoDictionaryKey: "RadarAppToken") as? String
-        ?? ProcessInfo.processInfo.environment["RADAR_APP_TOKEN"]
+    static let appToken = plist("RadarAppToken")
+        ?? env("RADAR_APP_TOKEN")
         ?? ""
+
+    /// True when there is a real backend to talk to.
+    static var isConfigured: Bool {
+        !appToken.isEmpty && !baseUrl.contains("example.workers.dev")
+    }
+
+    /// An unset xcconfig variable arrives as an empty string, which is not a
+    /// configured value and must not be treated as one.
+    private static func plist(_ key: String) -> String? {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String,
+              !value.trimmingCharacters(in: .whitespaces).isEmpty
+        else { return nil }
+        return value
+    }
+
+    private static func env(_ key: String) -> String? {
+        guard let value = ProcessInfo.processInfo.environment[key], !value.isEmpty
+        else { return nil }
+        return value
+    }
 
     /// A random id minted on first launch and kept in the keychain-free defaults.
     /// It is not tied to the device, the user, or anything Apple assigns, so it

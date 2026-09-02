@@ -4,6 +4,8 @@ dist/
 *.log
 
 # iOS
+ios/App/Local.xcconfig
+ios/App/RadarAU.xcodeproj/
 ios/build/
 ios/DerivedData/
 *.xcuserstate

@@ -224,7 +224,10 @@ fun DriveScreen(
                 settings = state.settings,
                 cameraCount = state.cameras.size,
                 connected = state.connected,
+                hasTestCamera = state.testThreats.isNotEmpty(),
                 onChange = viewModel::updateSettings,
+                onPlantTestCamera = viewModel::plantTestCamera,
+                onClearTestCamera = viewModel::clearTestCameras,
                 onDismiss = { showSettings = false },
             )
         }

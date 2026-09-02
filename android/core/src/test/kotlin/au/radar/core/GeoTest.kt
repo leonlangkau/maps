@@ -55,3 +55,20 @@ class GeoTest {
         assertTrue(d in 1_090.0..1_120.0, "got $d")
     }
 }
+
+class DestinationTest {
+
+    @Test
+    fun `a destination is the stated distance and bearing away`() {
+        val (lat, lon) = Geo.destination(-33.8688, 151.2093, 45.0, 600.0)
+        assertEquals(600.0, Geo.distanceM(-33.8688, 151.2093, lat, lon), 0.5)
+        assertEquals(45.0, Geo.bearingDeg(-33.8688, 151.2093, lat, lon), 0.1)
+    }
+
+    @Test
+    fun `heading north raises latitude and leaves longitude alone`() {
+        val (lat, lon) = Geo.destination(-33.8688, 151.2093, 0.0, 1_000.0)
+        assertTrue(lat > -33.8688)
+        assertEquals(151.2093, lon, 1e-9)
+    }
+}

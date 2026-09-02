@@ -6,6 +6,10 @@ options:
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
+  # Local.xcconfig is where your backend URL and token go. It is gitignored
+  # and optional: without it the app still builds, it just has no backend.
+  disabledValidations:
+    - missingConfigFiles
 
 packages:
   RadarKit:
@@ -24,6 +28,9 @@ targets:
       - package: RadarKit
       - package: MapLibre
         product: MapLibre
+    configFiles:
+      Debug: Local.xcconfig
+      Release: Local.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: au.radar.app
@@ -37,6 +44,11 @@ targets:
       path: Sources/Info.plist
       properties:
         CFBundleDisplayName: Radar AU
+        # Filled from Local.xcconfig at build time, so the token is baked into
+        # the app and works when launched from the home screen — scheme
+        # environment variables only apply when Xcode is the one launching.
+        RadarBaseUrl: $(RADAR_BASE_URL)
+        RadarAppToken: $(RADAR_APP_TOKEN)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

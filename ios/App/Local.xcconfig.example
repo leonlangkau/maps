@@ -1,0 +1,9 @@
+// Copy this file to Local.xcconfig (same folder) and fill it in.
+// Local.xcconfig is gitignored, so the token never lands in the repository.
+//
+// Leave both empty to build the app with no backend: the map will be blank
+// and there will be no cameras or hazards, but GPS, the speedometer, settings
+// and the test-camera button all work.
+
+RADAR_BASE_URL = https:/$()/radar-au.YOUR-SUBDOMAIN.workers.dev
+RADAR_APP_TOKEN = paste-the-APP_TOKEN-you-set-in-the-worker

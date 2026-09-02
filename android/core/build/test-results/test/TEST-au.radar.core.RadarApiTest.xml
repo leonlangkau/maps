@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="au.radar.core.RadarApiTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-01T18:11:34.500Z" hostname="vm" time="0.135">
+<testsuite name="au.radar.core.RadarApiTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-09-02T08:15:40.982Z" hostname="vm" time="0.09">
   <properties/>
-  <testcase name="search encodes the query safely()" classname="au.radar.core.RadarApiTest" time="0.072"/>
-  <testcase name="alerts are requested with the bbox in lon lat order()" classname="au.radar.core.RadarApiTest" time="0.006"/>
+  <testcase name="search encodes the query safely()" classname="au.radar.core.RadarApiTest" time="0.048"/>
+  <testcase name="alerts are requested with the bbox in lon lat order()" classname="au.radar.core.RadarApiTest" time="0.004"/>
   <testcase name="a trailing slash on the base url does not double up()" classname="au.radar.core.RadarApiTest" time="0.002"/>
-  <testcase name="an error status becomes an ApiException carrying the code()" classname="au.radar.core.RadarApiTest" time="0.026"/>
+  <testcase name="an error status becomes an ApiException carrying the code()" classname="au.radar.core.RadarApiTest" time="0.015"/>
   <testcase name="a delta request carries the since cursor()" classname="au.radar.core.RadarApiTest" time="0.002"/>
-  <testcase name="a report posts the body as JSON()" classname="au.radar.core.RadarApiTest" time="0.016"/>
-  <testcase name="a duplicate vote is swallowed rather than thrown()" classname="au.radar.core.RadarApiTest" time="0.001"/>
+  <testcase name="a report posts the body as JSON()" classname="au.radar.core.RadarApiTest" time="0.012"/>
+  <testcase name="a duplicate vote is swallowed rather than thrown()" classname="au.radar.core.RadarApiTest" time="0.002"/>
   <testcase name="every request carries the app token and the device id()" classname="au.radar.core.RadarApiTest" time="0.002"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

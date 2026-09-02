@@ -24,6 +24,9 @@ enum NavMode {
 final class DriveModel: ObservableObject {
     @Published private(set) var hazards: [Threat] = []
     @Published private(set) var cameras: [Threat] = []
+    /// Planted from the settings screen so the whole chain — GPS, engine,
+    /// voice, flash — can be exercised on a real road with no backend at all.
+    @Published private(set) var testThreats: [Threat] = []
     @Published private(set) var lastAnnouncement: Announcement?
     @Published private(set) var postedLimit: Int?
     @Published private(set) var connected = true
@@ -80,7 +83,7 @@ final class DriveModel: ObservableObject {
     private let trafficRefresh: UInt64 = 120 * 1_000_000_000
     private var trafficTask: Task<Void, Never>?
 
-    var threats: [Threat] { cameras + hazards }
+    var threats: [Threat] { cameras + hazards + testThreats }
 
     init() {
         api = RadarApi(
@@ -457,6 +460,45 @@ final class DriveModel: ObservableObject {
         } catch {
             show(toast: "Could not send that")
         }
+    }
+
+    // MARK: - Testing without a backend
+
+    /// Drop a pretend speed camera 600 m ahead on the current heading.
+    ///
+    /// Everything downstream is the real code path: the engine decides when to
+    /// warn, the voice speaks, the screen flashes, and passing it retires it.
+    /// The only fake part is where the camera came from.
+    func plantTestCamera() {
+        guard let snapshot = lastCar else {
+            show(toast: "Waiting for a GPS fix")
+            return
+        }
+        let heading = snapshot.headingDeg ?? 0
+        let ahead = Geo.destination(
+            lat: snapshot.lat, lon: snapshot.lon, bearingDeg: heading, distanceM: 600
+        )
+
+        // Replace rather than accumulate, and give it a fresh id each time so
+        // the engine's cooldown and retirement from the previous one do not
+        // silence this one.
+        let camera = Threat(
+            id: "test:camera:\(Int(Date().timeIntervalSince1970))",
+            kind: "fixed_speed",
+            lat: ahead.lat,
+            lon: ahead.lon,
+            severity: 2,
+            confidence: 1,
+            isCamera: true,
+            speedLimit: 60
+        )
+        testThreats = [camera]
+        show(toast: "Test camera placed 600 m ahead")
+    }
+
+    func clearTestCameras() {
+        testThreats = []
+        show(toast: "Test camera removed")
     }
 
     private func show(toast message: String) {

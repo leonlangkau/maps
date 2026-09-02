@@ -37,6 +37,20 @@ object Geo {
         return (atan2(y, x).toDegrees() + 360.0) % 360.0
     }
 
+    /** The point a given distance along a bearing from a start point. */
+    fun destination(lat: Double, lon: Double, bearingDeg: Double, distanceM: Double): Pair<Double, Double> {
+        val angular = distanceM / EARTH_RADIUS_M
+        val theta = bearingDeg.toRadians()
+        val lat1 = lat.toRadians()
+        val lon1 = lon.toRadians()
+        val lat2 = asin(sin(lat1) * cos(angular) + cos(lat1) * sin(angular) * cos(theta))
+        val lon2 = lon1 + atan2(
+            sin(theta) * sin(angular) * cos(lat1),
+            cos(angular) - sin(lat1) * sin(lat2),
+        )
+        return lat2.toDegrees() to lon2.toDegrees()
+    }
+
     /** Smallest angle between two bearings, 0..180, wrapping across north. */
     fun bearingDelta(a: Double, b: Double): Double = abs(((a - b) % 360.0 + 540.0) % 360.0 - 180.0)
 }

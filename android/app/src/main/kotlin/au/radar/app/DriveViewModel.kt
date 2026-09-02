@@ -44,6 +44,11 @@ data class RouteChoice(
 data class DriveUiState(
     val cameras: List<Threat> = emptyList(),
     val hazards: List<Threat> = emptyList(),
+    /**
+     * Planted from the settings screen so the whole chain — GPS, engine, voice,
+     * flash — can be exercised on a real road with no backend at all.
+     */
+    val testThreats: List<Threat> = emptyList(),
     val lastAnnouncement: Announcement? = null,
     val speed: SpeedReading = SpeedReading(0.0, trusted = false),
     val postedLimit: Int? = null,
@@ -68,7 +73,7 @@ data class DriveUiState(
     val selectedThreat: Threat? = null,
     val toast: String? = null,
 ) {
-    val threats: List<Threat> get() = cameras + hazards
+    val threats: List<Threat> get() = cameras + hazards + testThreats
     val muted: Boolean get() = settings.muted
     val speedKmh: Double get() = speed.kmh
 }
@@ -500,6 +505,45 @@ class DriveViewModel(application: Application) : AndroidViewModel(application) {
                     _state.value = _state.value.copy(toast = "Could not send that")
                 }
         }
+    }
+
+    // MARK: - Testing without a backend
+
+    /**
+     * Drop a pretend speed camera 600 m ahead on the current heading.
+     *
+     * Everything downstream is the real code path: the engine decides when to
+     * warn, the voice speaks, the screen flashes, and passing it retires it.
+     * The only fake part is where the camera came from.
+     */
+    fun plantTestCamera() {
+        val car = lastCar ?: run {
+            _state.value = _state.value.copy(toast = "Waiting for a GPS fix")
+            return
+        }
+        val (lat, lon) = Geo.destination(car.lat, car.lon, car.headingDeg ?: 0.0, 600.0)
+
+        // Replace rather than accumulate, and give it a fresh id each time so
+        // the engine's cooldown and retirement from the previous one do not
+        // silence this one.
+        val camera = Threat(
+            id = "test:camera:${System.currentTimeMillis() / 1000}",
+            kind = "fixed_speed",
+            lat = lat,
+            lon = lon,
+            severity = 2,
+            confidence = 1.0,
+            isCamera = true,
+            speedLimit = 60,
+        )
+        _state.value = _state.value.copy(
+            testThreats = listOf(camera),
+            toast = "Test camera placed 600 m ahead",
+        )
+    }
+
+    fun clearTestCameras() {
+        _state.value = _state.value.copy(testThreats = emptyList(), toast = "Test camera removed")
     }
 
     fun styleUrl(): String = api.styleUrl("dark")

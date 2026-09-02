@@ -72,7 +72,10 @@ fun SettingsScreen(
     settings: AlertSettings,
     cameraCount: Int,
     connected: Boolean,
+    hasTestCamera: Boolean,
     onChange: (AlertSettings) -> Unit,
+    onPlantTestCamera: () -> Unit,
+    onClearTestCamera: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     fun patch(kind: String, block: (KindSettings) -> KindSettings) {
@@ -168,6 +171,55 @@ fun SettingsScreen(
                                 onChange = { updated -> patch(row.kind) { updated } },
                             )
                         }
+                    }
+
+                    item { SectionHeader("Testing") }
+                    item {
+                        GlassPanel(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onPlantTestCamera()
+                                    onDismiss()
+                                },
+                            shape = Glass.CapsuleShape,
+                            tint = Color(0xFF2F80ED),
+                        ) {
+                            Text(
+                                "Plant a test camera 600 m ahead",
+                                Modifier.align(Alignment.Center).padding(vertical = 13.dp),
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                    if (hasTestCamera) {
+                        item {
+                            GlassPanel(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                                    .clickable(onClick = onClearTestCamera),
+                                shape = Glass.CapsuleShape,
+                            ) {
+                                Text(
+                                    "Remove the test camera",
+                                    Modifier.align(Alignment.Center).padding(vertical = 13.dp),
+                                    color = Color.White.copy(0.8f),
+                                    fontSize = 14.sp,
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Text(
+                            "Drops a pretend speed camera on the road ahead so you can hear " +
+                                "and see a real warning without a backend. Drive towards it.",
+                            color = Color.White.copy(0.45f),
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
                     }
 
                     item { SectionHeader("This phone") }

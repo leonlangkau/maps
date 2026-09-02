@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="au.radar.core.SpeedFilterTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-09-01T18:11:34.676Z" hostname="vm" time="0.022">
+<testsuite name="au.radar.core.SpeedFilterTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-09-02T08:15:41.106Z" hostname="vm" time="0.017">
   <properties/>
-  <testcase name="a poor fix holds the last good value, then admits it does not know()" classname="au.radar.core.SpeedFilterTest" time="0.002"/>
-  <testcase name="the output is never negative()" classname="au.radar.core.SpeedFilterTest" time="0.003"/>
+  <testcase name="a poor fix holds the last good value, then admits it does not know()" classname="au.radar.core.SpeedFilterTest" time="0.001"/>
+  <testcase name="the output is never negative()" classname="au.radar.core.SpeedFilterTest" time="0.002"/>
   <testcase name="a platform flagging its reading as invalid is not believed()" classname="au.radar.core.SpeedFilterTest" time="0.0"/>
-  <testcase name="a single wild outlier is largely absorbed()" classname="au.radar.core.SpeedFilterTest" time="0.001"/>
-  <testcase name="the displayed number rounds the way a speedometer does()" classname="au.radar.core.SpeedFilterTest" time="0.0"/>
+  <testcase name="a single wild outlier is largely absorbed()" classname="au.radar.core.SpeedFilterTest" time="0.0"/>
+  <testcase name="the displayed number rounds the way a speedometer does()" classname="au.radar.core.SpeedFilterTest" time="0.001"/>
   <testcase name="the very first reading is taken at face value()" classname="au.radar.core.SpeedFilterTest" time="0.001"/>
   <testcase name="a steady speed settles on exactly that speed()" classname="au.radar.core.SpeedFilterTest" time="0.0"/>
   <testcase name="jitter is smoothed away()" classname="au.radar.core.SpeedFilterTest" time="0.001"/>
-  <testcase name="a parked car reads exactly zero()" classname="au.radar.core.SpeedFilterTest" time="0.0"/>
+  <testcase name="a parked car reads exactly zero()" classname="au.radar.core.SpeedFilterTest" time="0.001"/>
   <testcase name="a missing accuracy figure is still usable()" classname="au.radar.core.SpeedFilterTest" time="0.001"/>
   <testcase name="coming out of a tunnel snaps rather than crawling up()" classname="au.radar.core.SpeedFilterTest" time="0.0"/>
   <testcase name="hard braking is followed almost immediately()" classname="au.radar.core.SpeedFilterTest" time="0.001"/>

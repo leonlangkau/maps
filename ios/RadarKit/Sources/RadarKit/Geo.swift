@@ -30,6 +30,22 @@ public enum Geo {
         return (atan2(y, x) * 180 / .pi + 360).truncatingRemainder(dividingBy: 360)
     }
 
+    /// The point a given distance along a bearing from a start point.
+    public static func destination(
+        lat: Double, lon: Double, bearingDeg: Double, distanceM: Double
+    ) -> (lat: Double, lon: Double) {
+        let angular = distanceM / earthRadiusM
+        let theta = bearingDeg * .pi / 180
+        let lat1 = lat * .pi / 180
+        let lon1 = lon * .pi / 180
+        let lat2 = asin(sin(lat1) * cos(angular) + cos(lat1) * sin(angular) * cos(theta))
+        let lon2 = lon1 + atan2(
+            sin(theta) * sin(angular) * cos(lat1),
+            cos(angular) - sin(lat1) * sin(lat2)
+        )
+        return (lat2 * 180 / .pi, lon2 * 180 / .pi)
+    }
+
     /// Smallest angle between two bearings, 0...180, wrapping across north.
     public static func bearingDelta(_ a: Double, _ b: Double) -> Double {
         abs(((a - b).truncatingRemainder(dividingBy: 360) + 540)

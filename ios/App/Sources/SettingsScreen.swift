@@ -84,6 +84,29 @@ struct SettingsScreen: View {
                     }
                 }
 
+                Section {
+                    Button {
+                        model.plantTestCamera()
+                        dismiss()
+                    } label: {
+                        Label("Plant a test camera 600 m ahead", systemImage: "camera.badge.ellipsis")
+                    }
+                    if !model.testThreats.isEmpty {
+                        Button(role: .destructive) {
+                            model.clearTestCameras()
+                        } label: {
+                            Label("Remove the test camera", systemImage: "trash")
+                        }
+                    }
+                } header: {
+                    Text("Testing")
+                } footer: {
+                    Text(
+                        "Drops a pretend speed camera on the road ahead so you can hear "
+                        + "and see a real warning without a backend. Drive towards it."
+                    )
+                }
+
                 Section("This phone") {
                     LabeledContent("Cameras stored", value: "\(model.cameras.count)")
                     LabeledContent(
